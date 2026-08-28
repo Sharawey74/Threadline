@@ -23,7 +23,7 @@ var budgetRowRe = regexp.MustCompile(`^\*{0,2}(\d+(?:\.\d+)?)\*{0,2}$`)
 // Items are attached to the section heading above them, which is why sections
 // and items are parsed in one pass rather than two - an item's role depends on
 // its section, and its section is simply the most recent heading.
-func ParseDocument(content string, r Resolver) *Plan {
+func ParseDocument(content string, r *Resolver) *Plan {
 	p := &Plan{Budget: map[string]float64{}}
 	current := Section{Title: "(preamble)", Role: SecReference, BudgetConf: ConfNone}
 
@@ -55,7 +55,7 @@ func ParseDocument(content string, r Resolver) *Plan {
 }
 
 // attachItem completes an item with the facts that depend on its section.
-func (p *Plan) attachItem(item Item, sec Section, r Resolver) {
+func (p *Plan) attachItem(item Item, sec Section, r *Resolver) {
 	item.Section = sec.Title
 	item.Backticks = FindBackticks(item.Raw)
 

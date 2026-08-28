@@ -54,10 +54,20 @@ type Link struct {
 }
 
 // Resolver turns backtick spans into filesystem links, rooted at a career
-// folder. It caches nothing: the derived model is rebuilt whenever a source
-// file's hash changes, and a stale path cache would outlive that.
+// folder.
+//
+// The tree is indexed once, lazily, on the first span that needs searching.
+// Walking per span is O(spans x tree) and one real line carries four spans;
+// against a real career folder that was slow enough to be unusable. The index
+// lives only as long as the Resolver, which is one scan - the derived model is
+// rebuilt whenever a source file's hash changes, so a longer-lived cache would
+// outlive the thing it describes.
 type Resolver struct {
 	Root string
+
+	indexed bool
+	byPath  map[string]LinkKind // lowercased path relative to root
+	byBase  map[string]string   // lowercased basename -> first path seen
 }
 
 // Resolve applies Schema §4.4: a backtick span is a link only if it resolves
@@ -68,7 +78,7 @@ type Resolver struct {
 // Windows, OneDrive folders and junctions are common, and a recursive-only
 // implementation reported every topic folder as unresolved while a direct probe
 // found all of them.
-func (r Resolver) Resolve(span string) Link {
+func (r *Resolver) Resolve(span string) Link {
 	l := Link{Span: span, Kind: LinkNone}
 
 	if strings.ContainsAny(span, illegalInPath) {
@@ -108,18 +118,46 @@ func statKind(path string) (LinkKind, bool) {
 	return LinkFile, true
 }
 
-// search walks the tree looking for a basename or path-suffix match.
+// search answers from the index, building it on first use.
+func (r *Resolver) search(span string) (rel string, kind LinkKind, ok bool) {
+	r.buildIndex()
+
+	want := strings.ToLower(filepath.ToSlash(span))
+	if kind, hit := r.byPath[want]; hit {
+		return want, kind, true
+	}
+
+	// Path-suffix match: "06 - System Design/_Archive/x.pdf" should find
+	// "Study guided & notes/06 - System Design/_Archive/x.pdf".
+	for p, kind := range r.byPath {
+		if strings.HasSuffix(p, "/"+want) {
+			return p, kind, true
+		}
+	}
+
+	if p, hit := r.byBase[strings.ToLower(filepath.Base(filepath.FromSlash(span)))]; hit {
+		return p, r.byPath[p], true
+	}
+
+	return "", LinkNone, false
+}
+
+// buildIndex walks the career root once, recording every path and basename.
 //
 // Traversal is explicitly symlink-aware: WalkDir uses Lstat and will not
 // descend into a symlinked directory, so those subtrees are walked separately
-// with a visited set keyed on the resolved path to prevent cycles.
-func (r Resolver) search(span string) (rel string, kind LinkKind, ok bool) {
-	want := strings.ToLower(filepath.ToSlash(span))
-	base := strings.ToLower(filepath.Base(filepath.FromSlash(span)))
+// with a visited set keyed on the resolved path to prevent cycles. On Windows
+// this matters - OneDrive folders, junctions and hardlinked directories are all
+// common in a folder like this.
+func (r *Resolver) buildIndex() {
+	if r.indexed {
+		return
+	}
+	r.indexed = true
+	r.byPath = map[string]LinkKind{}
+	r.byBase = map[string]string{}
 
 	visited := map[string]bool{}
-	var found string
-	var foundKind LinkKind
 
 	var walk func(dir string)
 	walk = func(dir string) {
@@ -130,39 +168,35 @@ func (r Resolver) search(span string) (rel string, kind LinkKind, ok bool) {
 		visited[real] = true
 
 		_ = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			if err != nil || found != "" {
+			if err != nil {
 				return nil // an unreadable directory is not a parse failure
 			}
 			if d.Type()&fs.ModeSymlink != 0 {
-				if fi, err := os.Stat(path); err == nil && fi.IsDir() {
+				if fi, statErr := os.Stat(path); statErr == nil && fi.IsDir() {
 					walk(path) // WalkDir will not follow this itself
 				}
 				return nil
 			}
 
-			p, err := filepath.Rel(r.Root, path)
-			if err != nil {
+			p, relErr := filepath.Rel(r.Root, path)
+			if relErr != nil || p == "." {
 				return nil
 			}
 			slash := strings.ToLower(filepath.ToSlash(p))
 
-			if slash == want || strings.HasSuffix(slash, "/"+want) ||
-				strings.ToLower(d.Name()) == base {
-				found = filepath.ToSlash(p)
-				foundKind = LinkFile
-				if d.IsDir() {
-					foundKind = LinkFolder
-				}
+			kind := LinkFile
+			if d.IsDir() {
+				kind = LinkFolder
+			}
+			r.byPath[slash] = kind
+			if _, seen := r.byBase[strings.ToLower(d.Name())]; !seen {
+				r.byBase[strings.ToLower(d.Name())] = filepath.ToSlash(p)
 			}
 			return nil
 		})
 	}
 
 	walk(r.Root)
-	if found == "" {
-		return "", LinkNone, false
-	}
-	return found, foundKind, true
 }
 
 // ResolveAll resolves every span on a line and picks the item's project.
@@ -170,7 +204,7 @@ func (r Resolver) search(span string) (rel string, kind LinkKind, ok bool) {
 // Rule (Schema §4.4): when several spans resolve and exactly one is a folder,
 // the folder is the project and the files are references. Anything else is
 // marked ambiguous for the UI to ask about, rather than guessed at.
-func (r Resolver) ResolveAll(spans []string) (links []Link, project *Link, notes []string) {
+func (r *Resolver) ResolveAll(spans []string) (links []Link, project *Link, notes []string) {
 	links = make([]Link, 0, len(spans))
 	for _, s := range spans {
 		links = append(links, r.Resolve(s))

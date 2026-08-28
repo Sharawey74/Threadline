@@ -33,7 +33,7 @@ func writeFile(t *testing.T, path string) {
 
 // Schema §4.4.
 func TestResolve(t *testing.T) {
-	r := Resolver{Root: careerRoot(t)}
+	r := &Resolver{Root: careerRoot(t)}
 
 	tests := []struct {
 		name string
@@ -99,7 +99,7 @@ func TestResolve(t *testing.T) {
 // A code snippet and a dead link are different facts and must not be conflated:
 // one is noise, the other is the user's link rotting.
 func TestSnippetAndDeadLinkAreDistinct(t *testing.T) {
-	r := Resolver{Root: careerRoot(t)}
+	r := &Resolver{Root: careerRoot(t)}
 
 	snippet := r.Resolve(`label:"good first issue" is:open`)
 	if snippet.Kind != LinkNone {
@@ -118,7 +118,7 @@ func TestSnippetAndDeadLinkAreDistinct(t *testing.T) {
 // When several spans resolve and exactly one is a folder, that folder is the
 // item's project and the files are references.
 func TestResolveAllPicksTheFolderAsProject(t *testing.T) {
-	r := Resolver{Root: careerRoot(t)}
+	r := &Resolver{Root: careerRoot(t)}
 
 	links, project, notes := r.ResolveAll([]string{
 		"06 - System Design",
@@ -142,7 +142,7 @@ func TestResolveAllPicksTheFolderAsProject(t *testing.T) {
 // Two folders is genuinely ambiguous. Guessing would attach a session's hours
 // to the wrong project, so the parser refuses and says why.
 func TestTwoFoldersIsAmbiguousNotGuessed(t *testing.T) {
-	r := Resolver{Root: careerRoot(t)}
+	r := &Resolver{Root: careerRoot(t)}
 
 	_, project, notes := r.ResolveAll([]string{
 		"02 - Databases & Storage",
@@ -170,7 +170,7 @@ func TestResolvesThroughSymlinkedDirectory(t *testing.T) {
 		t.Skipf("cannot create symlinks here: %v", err)
 	}
 
-	r := Resolver{Root: root}
+	r := &Resolver{Root: root}
 	got := r.Resolve("04 - Messaging & Event Streaming")
 	if got.Kind != LinkFolder {
 		t.Errorf("kind = %v (%s), want folder through the symlink", got.Kind, got.Reason)

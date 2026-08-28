@@ -26,7 +26,7 @@ func fixturePlan(t *testing.T) *Plan {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return ParseDocument(string(content), Resolver{Root: root})
+	return ParseDocument(string(content), &Resolver{Root: root})
 }
 
 func TestParseDocument(t *testing.T) {
