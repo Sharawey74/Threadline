@@ -51,12 +51,12 @@ jobs:
         if: steps.detect.outputs.go == 'true'
         run: go vet ./...
 
-      # Pinned at v6 deliberately. v9 is current but changed its inputs across
-      # three majors, and nothing here exercises it yet - the step is skipped
-      # until go.mod exists. Bump it in Phase 1, when a real run can prove it.
+      # v9 installs golangci-lint v2. v6 installed 1.64.8, which is built with
+      # Go 1.24 and refuses to analyse a module targeting 1.25 - it exits 3
+      # before linting anything.
       - name: golangci-lint
         if: steps.detect.outputs.go == 'true'
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
@@ -64,7 +64,10 @@ jobs:
         if: steps.detect.outputs.go == 'true'
         run: |
           go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-          gocyclo -over 15 -ignore "_test\.go" . || {
+          # node_modules ships stray .go files (flatted/golang) that would fail
+          # a gate they have nothing to do with. gocyclo recurses from whatever
+          # path it is given, so exclude them by pattern rather than by path.
+          gocyclo -over 15 -ignore "_test\.go|node_modules" . || {
             echo "::error::cyclomatic complexity over threshold 15"; exit 1; }
 
       - name: gosec
