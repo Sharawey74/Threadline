@@ -19,11 +19,22 @@ go.work.sum
 
 # ── Wails ─────────────────────────────────────────────────────
 build/bin/
-frontend/dist/
-frontend/wailsjs/          # generated bindings — regenerated on build
+
+# frontend/dist is embedded by main.go via //go:embed all:frontend/dist, so the
+# directory must exist for the Go build to compile - keep its placeholder.
+frontend/dist/*
+!frontend/dist/gitkeep
+
+# frontend/wailsjs is generated, but it IS tracked on purpose: App.tsx imports
+# it, and the frontend CI job has no Go toolchain to regenerate it with.
+# Revisit at Phase 3 - once ipc.ts wraps the bridge behind a mock, the frontend
+# stops importing these bindings directly and they can go back to being ignored.
 
 # ── Node / Vite ───────────────────────────────────────────────
 node_modules/
+# wails dependency-change cache, regenerated on every build
+# (a trailing # on a pattern line is NOT a comment - it becomes part of the pattern)
+frontend/package.json.md5
 .vite/
 *.tsbuildinfo
 npm-debug.log*

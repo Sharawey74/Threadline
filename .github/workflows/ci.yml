@@ -20,8 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.23"
-  NODE_VERSION: "20"
+  # The Go version is NOT pinned here - setup-go reads go.mod, so CI and the
+  # dev machine can never drift apart. Node is pinned to the current LTS.
+  NODE_VERSION: "22"
 
 jobs:
   core:
@@ -43,7 +44,7 @@ jobs:
       - uses: actions/setup-go@v7
         if: steps.detect.outputs.go == 'true'
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: go vet
@@ -96,7 +97,9 @@ jobs:
           if [ ! -f bridge/app.go ]; then
             echo "::notice::bridge/app.go not present yet - C2 check inactive"; exit 0
           fi
-          n=$(grep -cE "^func \(a \*App\) [A-Z]" bridge/app.go || true)
+          # Startup/Shutdown/DomReady/BeforeClose are Wails lifecycle hooks,
+          # not IPC commands - they must not count against the C2 budget.
+          n=$(grep -E "^func \(a \*App\) [A-Z]" bridge/app.go               | grep -cvE "\) (Startup|Shutdown|DomReady|BeforeClose)\(" || true)
           echo "IPC commands bound: $n"
           if [ "$n" -ge 20 ]; then
             echo "::error::IPC contract has $n commands - constraint C2 breached"; exit 1
@@ -111,7 +114,7 @@ jobs:
       - uses: actions/setup-go@v7
         if: hashFiles('go.mod') != ''
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       # C4 - if the write path exists, the gate must exist too. A missing
@@ -181,7 +184,7 @@ jobs:
       - uses: actions/setup-go@v7
         if: hashFiles('go.mod') != ''
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - uses: actions/setup-node@v7
