@@ -1,0 +1,65 @@
+# ── Planning layer — local only, never committed ──────────────
+plans/
+TASKS.md
+CLAUDE.md
+*.backup-*.md
+
+# ── Go ────────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
+go.work
+go.work.sum
+
+# ── Wails ─────────────────────────────────────────────────────
+build/bin/
+frontend/dist/
+frontend/wailsjs/          # generated bindings — regenerated on build
+
+# ── Node / Vite ───────────────────────────────────────────────
+node_modules/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Application runtime data ──────────────────────────────────
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+/logs/
+*.log
+threadline-snapshots/
+
+# ── Environment & secrets ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Editors ───────────────────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*~
+
+# ── OS ────────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── Coverage & profiling ──────────────────────────────────────
+coverage.out
+coverage.html
+*.prof
+*.pprof

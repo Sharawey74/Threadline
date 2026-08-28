@@ -1,0 +1,209 @@
+# Threadline CI - the gates named in TASKS.md, active from the first commit.
+#
+# Every job is guarded so the pipeline is green on an empty repository (Phase 0
+# requires exactly that) and tightens automatically as each layer lands. Guards
+# skip work that does not exist yet; they never skip work that does.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.23"
+  NODE_VERSION: "20"
+
+jobs:
+  core:
+    name: Go core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Go module
+        id: detect
+        run: |
+          if [ -f go.mod ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no go.mod yet - Go gates inactive"
+          fi
+
+      - uses: actions/setup-go@v5
+        if: steps.detect.outputs.go == 'true'
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: go vet
+        if: steps.detect.outputs.go == 'true'
+        run: go vet ./...
+
+      - name: golangci-lint
+        if: steps.detect.outputs.go == 'true'
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: gocyclo
+        if: steps.detect.outputs.go == 'true'
+        run: |
+          go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+          gocyclo -over 15 -ignore "_test\.go" . || {
+            echo "::error::cyclomatic complexity over threshold 15"; exit 1; }
+
+      - name: gosec
+        if: steps.detect.outputs.go == 'true'
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -quiet ./...
+
+      - name: go test -race
+        if: steps.detect.outputs.go == 'true'
+        run: go test -race -count=1 ./...
+
+      # C1 - core/ must never import Wails. This is what keeps the core
+      # headlessly testable and the Electron fallback open.
+      - name: C1 - core must not import Wails
+        if: steps.detect.outputs.go == 'true'
+        run: |
+          if [ ! -d core ]; then
+            echo "::notice::core/ not present yet - C1 check inactive"; exit 0
+          fi
+          if grep -rn --include="*.go" "wailsapp/wails" core/; then
+            echo "::error::core/ imports Wails - constraint C1 violated"; exit 1
+          fi
+          echo "core/ is Wails-free"
+
+      # C2 - the IPC contract stays under 20 commands.
+      - name: C2 - IPC contract under 20 commands
+        if: steps.detect.outputs.go == 'true'
+        run: |
+          if [ ! -f bridge/app.go ]; then
+            echo "::notice::bridge/app.go not present yet - C2 check inactive"; exit 0
+          fi
+          n=$(grep -cE "^func \(a \*App\) [A-Z]" bridge/app.go || true)
+          echo "IPC commands bound: $n"
+          if [ "$n" -ge 20 ]; then
+            echo "::error::IPC contract has $n commands - constraint C2 breached"; exit 1
+          fi
+
+  round-trip:
+    name: Round-trip safety gate (C4, blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        if: hashFiles('go.mod') != ''
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      # C4 - if the write path exists, the gate must exist too. A missing
+      # round-trip test is a failure, not an absence: write-back ships
+      # disabled rather than untested.
+      - name: Assert the gate exists, then run it
+        run: |
+          if [ ! -f core/plan/write.go ]; then
+            echo "::notice::write path not present yet - gate inactive"; exit 0
+          fi
+          if ! grep -rq "func TestRoundTrip" core/plan; then
+            echo "::error::core/plan/write.go exists but no TestRoundTrip - C4 requires the gate"
+            exit 1
+          fi
+          go test ./core/plan -run TestRoundTrip -count=1 -v
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect frontend
+        id: detect
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "fe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fe=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::no frontend/package.json yet - frontend gates inactive"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.fe == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        if: steps.detect.outputs.fe == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: tsc --noEmit
+        if: steps.detect.outputs.fe == 'true'
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: eslint
+        if: steps.detect.outputs.fe == 'true'
+        working-directory: frontend
+        run: npx eslint .
+
+      - name: Component tests
+        if: steps.detect.outputs.fe == 'true'
+        working-directory: frontend
+        run: npm test --if-present -- --run
+
+  build-windows:
+    name: Windows build
+    runs-on: windows-latest
+    needs: [core, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        if: hashFiles('go.mod') != ''
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - uses: actions/setup-node@v4
+        if: hashFiles('frontend/package.json') != ''
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "::notice::nothing to build yet"; exit 0
+          fi
+          if [ -f wails.json ]; then
+            go install github.com/wailsapp/wails/v2/cmd/wails@latest
+            wails build -platform windows/amd64
+          else
+            go build ./...
+          fi
+
+      - name: Report binary size (N4 target < 20 MB)
+        shell: bash
+        run: |
+          shopt -s nullglob
+          for f in build/bin/*.exe; do
+            size=$(stat -c%s "$f")
+            echo "$f: $((size / 1024 / 1024)) MB ($size bytes)"
+          done

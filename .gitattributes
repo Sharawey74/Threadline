@@ -1,0 +1,55 @@
+# Line endings are load-bearing in this repo.
+#
+# The write-back path preserves whatever bytes it reads (Schema §6 rule 3), and
+# the round-trip gate compares files byte for byte. A fixture checked out with
+# CRLF would fail that gate for a reason that has nothing to do with the code,
+# so the repo pins LF everywhere it can.
+
+* text=auto eol=lf
+
+*.md      text eol=lf
+*.go      text eol=lf
+*.ts      text eol=lf
+*.tsx     text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.json    text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.sql     text eol=lf
+*.css     text eol=lf
+*.html    text eol=lf
+*.toml    text eol=lf
+*.sh      text eol=lf
+
+# Windows-native scripts keep CRLF - cmd.exe mis-parses LF batch files.
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.ps1     text eol=crlf
+
+# CRLF fixtures are exempt on purpose: they exist to prove that write-back
+# preserves the line endings it finds, so Git must not normalise them.
+testdata/crlf/**   -text
+testdata/**/*.crlf -text
+
+# Never transform these.
+*.pdf     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.exe     binary
+*.dll     binary
+*.db      binary
+*.sqlite  binary
+*.xlsx    binary
+*.docx    binary
+*.woff    binary
+*.woff2   binary
+*.ttf     binary
+
+# Generated - keep out of diffs and out of language statistics.
+frontend/wailsjs/**  linguist-generated=true
+package-lock.json    linguist-generated=true -diff
+go.sum               -diff
