@@ -28,7 +28,7 @@ jobs:
     name: Go core
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Detect Go module
         id: detect
@@ -40,7 +40,7 @@ jobs:
             echo "::notice::no go.mod yet - Go gates inactive"
           fi
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         if: steps.detect.outputs.go == 'true'
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -50,6 +50,9 @@ jobs:
         if: steps.detect.outputs.go == 'true'
         run: go vet ./...
 
+      # Pinned at v6 deliberately. v9 is current but changed its inputs across
+      # three majors, and nothing here exercises it yet - the step is skipped
+      # until go.mod exists. Bump it in Phase 1, when a real run can prove it.
       - name: golangci-lint
         if: steps.detect.outputs.go == 'true'
         uses: golangci/golangci-lint-action@v6
@@ -103,9 +106,9 @@ jobs:
     name: Round-trip safety gate (C4, blocking)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         if: hashFiles('go.mod') != ''
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -129,7 +132,7 @@ jobs:
     name: Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Detect frontend
         id: detect
@@ -141,7 +144,7 @@ jobs:
             echo "::notice::no frontend/package.json yet - frontend gates inactive"
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.detect.outputs.fe == 'true'
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -173,15 +176,15 @@ jobs:
     runs-on: windows-latest
     needs: [core, frontend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         if: hashFiles('go.mod') != ''
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: hashFiles('frontend/package.json') != ''
         with:
           node-version: ${{ env.NODE_VERSION }}
