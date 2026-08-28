@@ -151,3 +151,37 @@ func TestUnbudgetedSectionHasNoBudget(t *testing.T) {
 	}
 	t.Fatal("§8 not found in the fixture")
 }
+
+// Every item must come out of a parse identified, and identified uniquely.
+func TestParseDocumentAssignsUniqueAnchors(t *testing.T) {
+	p := fixturePlan(t)
+
+	seen := map[string]string{}
+	for _, i := range p.Items {
+		if i.Anchor == "" {
+			t.Errorf("item %q has no anchor", i.Text)
+			continue
+		}
+		if prev, dup := seen[i.Anchor]; dup {
+			t.Errorf("anchor collision: %q and %q", prev, i.Text)
+		}
+		seen[i.Anchor] = i.Text
+	}
+	if len(seen) != len(p.Items) {
+		t.Errorf("%d unique anchors for %d items", len(seen), len(p.Items))
+	}
+}
+
+// Re-parsing an unchanged file must produce identical anchors, or stored
+// history would detach on every scan.
+func TestAnchorsAreStableAcrossReparses(t *testing.T) {
+	a, b := fixturePlan(t), fixturePlan(t)
+	if len(a.Items) != len(b.Items) {
+		t.Fatal("item counts differ between parses")
+	}
+	for i := range a.Items {
+		if a.Items[i].Anchor != b.Items[i].Anchor {
+			t.Errorf("anchor changed on re-parse for %q", a.Items[i].Text)
+		}
+	}
+}

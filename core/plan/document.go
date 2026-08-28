@@ -47,6 +47,10 @@ func ParseDocument(content string, r Resolver) *Plan {
 		}
 	}
 
+	// Anchors last: an item's identity depends on its role, which depends on
+	// the section it was attached to.
+	AssignAnchors(p.Items)
+
 	return p
 }
 
