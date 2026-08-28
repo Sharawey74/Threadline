@@ -72,6 +72,28 @@ func ParseCheckbox(line string, lineNo int) (Item, bool) {
 	return item, true
 }
 
+// ParseItem parses a task line completely: the checkbox rule first, then each
+// extraction rule layered on in turn.
+//
+// The rules stay separate functions rather than one routine because each is a
+// separate rule in the spec with its own failure mode. The parser has already
+// lost 84 hours once to a rule that failed quietly inside a larger routine, and
+// small units keep a failure attributable to the rule that caused it.
+func ParseItem(line string, lineNo int) (Item, bool) {
+	item, ok := ParseCheckbox(line, lineNo)
+	if !ok {
+		return Item{}, false
+	}
+
+	// Rules read the normalised body: matching must not depend on which dash
+	// the author typed. item.Raw keeps the original bytes for write-back.
+	body := Normalise(checkboxRe.FindStringSubmatch(line)[2])
+	item.applyHours(body)
+	item.applyPages(body)
+
+	return item, true
+}
+
 // atoiSafe converts a string the caller has already proven to be digits.
 // Returns 0 on overflow rather than erroring: a plan item numbered beyond
 // 2^31 is not a case worth an error path.

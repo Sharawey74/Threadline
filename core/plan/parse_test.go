@@ -162,3 +162,51 @@ func TestUnsetNumbersAreDistinguishable(t *testing.T) {
 		t.Error("HasPages() = true on a line with no pages")
 	}
 }
+
+// ParseItem is the assembly point: the checkbox rule plus every extraction rule
+// layered on. This asserts the layers actually compose, which unit tests of the
+// individual rules cannot show.
+func TestParseItemComposesEveryRule(t *testing.T) {
+	const line = "- [ ] **1. `02 - Databases & Storage`** — 49pp, ~7h — ACID, indexing"
+
+	item, ok := ParseItem(line, 60)
+	if !ok {
+		t.Fatal("did not parse")
+	}
+
+	if item.Order != 1 {
+		t.Errorf("Order = %d, want 1", item.Order)
+	}
+	if !item.HasHours() || item.Hours != 7 || item.HoursConf != ConfHigh {
+		t.Errorf("hours = %v/%v, want 7/high", item.Hours, item.HoursConf)
+	}
+	if !item.HasPages() || item.Pages != 49 || item.PagesConf != ConfHigh {
+		t.Errorf("pages = %v/%v, want 49/high", item.Pages, item.PagesConf)
+	}
+	if item.Raw != line {
+		t.Error("Raw was modified during assembly")
+	}
+	if item.Checked {
+		t.Error("Checked = true for '[ ]'")
+	}
+}
+
+// The line that carries both traps at once: an emphasised hour figure competing
+// with a bare one, and page counts that must not be summed.
+func TestParseItemOnTheHardestRealLine(t *testing.T) {
+	const line = "- [ ] **5. `06 - System Design`** — 175pp, ~35h — Fundamentals v3 (102pp), Q&A (25pp)"
+
+	item, ok := ParseItem(line, 64)
+	if !ok {
+		t.Fatal("did not parse")
+	}
+	if item.Pages != 175 {
+		t.Errorf("Pages = %d, want 175 (102 and 25 belong to other files)", item.Pages)
+	}
+	if item.Hours != 35 {
+		t.Errorf("Hours = %v, want 35", item.Hours)
+	}
+	if len(item.Notes) == 0 {
+		t.Error("three page counts on one line produced no note")
+	}
+}
