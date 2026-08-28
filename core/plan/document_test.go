@@ -38,11 +38,11 @@ func TestParseDocument(t *testing.T) {
 	if got := len(p.Sections); got != 7 {
 		t.Errorf("sections = %d, want 7", got)
 	}
-	if total, ok := p.BudgetRow("total"); !ok || total != 292 {
-		t.Errorf("budget Total = %v (found %v), want 292", total, ok)
+	if total, ok := p.BudgetRow("total"); !ok || total != 22 {
+		t.Errorf("budget Total = %v (found %v), want 22", total, ok)
 	}
-	if study, ok := p.BudgetRow("study guide"); !ok || study != 81 {
-		t.Errorf("budget study row = %v (found %v), want 81", study, ok)
+	if study, ok := p.BudgetRow("study guide"); !ok || study != 45 {
+		t.Errorf("budget study row = %v (found %v), want 45", study, ok)
 	}
 }
 
@@ -75,9 +75,9 @@ func TestOnlyScheduleItemsCountTowardTheBudget(t *testing.T) {
 	curriculum := SumHours(p.ItemsWithRole(RoleCurriculum))
 	scope := SumHours(p.ItemsWithRole(RoleScope))
 
-	// Now: 0.5 + 15 + 1.5 = 17;  September: 2  ->  19
-	if schedule != 19 {
-		t.Errorf("schedule hours = %v, want 19", schedule)
+	// Now: 0.5 + 15 + 1.5 = 17;  September: 5  ->  22
+	if schedule != 22 {
+		t.Errorf("schedule hours = %v, want 22", schedule)
 	}
 	// 7 + 35 + 3 = 45, descriptive - paid for by schedule items
 	if curriculum != 45 {
