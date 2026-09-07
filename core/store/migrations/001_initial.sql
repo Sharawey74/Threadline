@@ -9,7 +9,11 @@
 -- Deferred to V2: tag, tagging, entity_link, competency_note, screenshot_meta.
 
 -- ─── meta ────────────────────────────────────────────────────────────
-CREATE TABLE app_meta (
+-- app_meta is the one table the runner bootstraps itself: it has to exist
+-- before a migration can record which version was applied. IF NOT EXISTS keeps
+-- this file a complete description of the schema without colliding with that
+-- bootstrap.
+CREATE TABLE IF NOT EXISTS app_meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
