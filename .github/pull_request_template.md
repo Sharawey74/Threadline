@@ -53,6 +53,6 @@ The sequence that ends every branch. Work down it in order.
 - [ ] **CI green** — every gate, not just the ones you were watching
 - [ ] **Self-reviewed the full diff**, as a stranger would — not the code you remember writing
 - [ ] **Squash merge**, so the increment lands on `main` as one clean commit
-- [ ] **Delete the branch**
+- [ ] **Keep the branch** - it holds the unsquashed, commit-by-commit history
 
 `main` is protected and always green. If CI is red, fixing it is the only task.
