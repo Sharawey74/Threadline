@@ -45,6 +45,22 @@ func TestMigrateDoesNotCreateDeferredTables(t *testing.T) {
 	}
 }
 
+// The expected version is derived from the migrations on disk, not written
+// out as a literal. Hardcoding it means every future migration fails this test
+// for the one reason that is not a defect.
+func latestMigrationVersion(t *testing.T) int {
+	t.Helper()
+
+	all, err := pendingMigrations(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) == 0 {
+		t.Fatal("no migrations are embedded")
+	}
+	return all[len(all)-1].version
+}
+
 func TestMigrateRecordsSchemaVersion(t *testing.T) {
 	s := memStore(t)
 
@@ -52,8 +68,8 @@ func TestMigrateRecordsSchemaVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v != 1 {
-		t.Errorf("schema version = %d, want 1", v)
+	if want := latestMigrationVersion(t); v != want {
+		t.Errorf("schema version = %d, want %d", v, want)
 	}
 }
 
@@ -78,8 +94,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	defer func() { _ = second.Close() }()
 
 	v, _ := second.SchemaVersion()
-	if v != 1 {
-		t.Errorf("schema version after reopen = %d, want 1", v)
+	if want := latestMigrationVersion(t); v != want {
+		t.Errorf("schema version after reopen = %d, want %d", v, want)
 	}
 }
 
