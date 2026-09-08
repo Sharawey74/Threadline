@@ -23,6 +23,7 @@ import type {
   Section,
   SessionId,
   Topic,
+  Workspace,
 } from './types';
 import type { IPC } from './index';
 
@@ -131,6 +132,10 @@ export class MockIPC implements IPC {
   private contents = new Map<number, string>();
   private handlers = new Map<EventName, Set<() => void>>();
   private nextSession = 1;
+  // The mock starts configured: I3's tests drive the workbench itself, and
+  // making every one of them choose a folder first would test the first-run
+  // screen over and over instead.
+  private careerRoot = 'C:/Users/DELL/Desktop/Career';
 
   // ── Queries ────────────────────────────────────────────────────────
 
@@ -172,6 +177,15 @@ export class MockIPC implements IPC {
         // Never measured: the app was not running. Must not render as 0h.
         { section: 'September', allocatedHours: 54, spentHours: null, measured: false },
       ],
+    });
+  }
+
+  getWorkspace(): Promise<Workspace> {
+    return delay<Workspace>({
+      careerRoot: this.careerRoot,
+      planFile: this.careerRoot === '' ? '' : `${this.careerRoot}/TASKS.md`,
+      hasPlan: this.careerRoot !== '',
+      problem: '',
     });
   }
 
@@ -233,8 +247,16 @@ export class MockIPC implements IPC {
     return delay(undefined);
   }
 
-  setCareerRoot(_path: string): Promise<void> {
+  setCareerRoot(path: string): Promise<void> {
+    this.careerRoot = path;
     return delay(undefined);
+  }
+
+  chooseCareerRoot(): Promise<string> {
+    // No native dialog outside the Wails window, so the mock adopts a
+    // plausible folder rather than pretending a picker appeared.
+    this.careerRoot = 'C:/Users/DELL/Desktop/Career';
+    return delay(this.careerRoot);
   }
 
   // ── Events ─────────────────────────────────────────────────────────

@@ -126,3 +126,19 @@ export type EndReason = 'switch' | 'idle' | 'app_close' | 'manual';
 
 /** Events Go pushes to the frontend. */
 export type EventName = 'plan:changed' | 'session:tick' | 'reconcile:drift';
+
+/**
+ * Whether the app has a career folder yet.
+ *
+ * This query never fails for the ordinary reason of not having one. A query
+ * that errors on the normal first state forces every caller to treat first run
+ * as a fault — which is exactly what makes an unconfigured app look broken.
+ */
+export interface Workspace {
+  /** Empty until a folder is chosen. */
+  careerRoot: string;
+  planFile: string;
+  hasPlan: boolean;
+  /** Why a remembered folder could not be reopened. Empty when there is no problem. */
+  problem: string;
+}

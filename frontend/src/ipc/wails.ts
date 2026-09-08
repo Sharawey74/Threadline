@@ -10,6 +10,7 @@
 // what the contract is.
 
 import {
+  ChooseCareerRoot,
   EndSession,
   GetBudgetStatus,
   GetMaterial,
@@ -17,6 +18,7 @@ import {
   GetPosition,
   GetReconciliation,
   GetTopics,
+  GetWorkspace,
   ReadArtifact,
   SavePosition,
   SetCareerRoot,
@@ -37,6 +39,7 @@ import type {
   Position,
   SessionId,
   Topic,
+  Workspace,
 } from './types';
 import type { IPC } from './index';
 
@@ -71,6 +74,10 @@ export class WailsIPC implements IPC {
     return ReadArtifact(artifactId) as Promise<Content>;
   }
 
+  getWorkspace(): Promise<Workspace> {
+    return GetWorkspace() as Promise<Workspace>;
+  }
+
   // ── Commands ───────────────────────────────────────────────────────
 
   tickItem(anchor: string, checked: boolean): Promise<void> {
@@ -95,6 +102,10 @@ export class WailsIPC implements IPC {
 
   setCareerRoot(path: string): Promise<void> {
     return SetCareerRoot(path);
+  }
+
+  chooseCareerRoot(): Promise<string> {
+    return ChooseCareerRoot();
   }
 
   // ── Events ─────────────────────────────────────────────────────────

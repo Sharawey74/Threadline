@@ -7,17 +7,21 @@ import { MockIPC } from './mock';
 // §4.1 froze, and hold the mock to behaving like the bridge it stands in for.
 
 describe('the frozen contract', () => {
-  it('is 7 queries and 6 commands', () => {
-    expect(CONTRACT.queries).toHaveLength(7);
-    expect(CONTRACT.commands).toHaveLength(6);
+  it('is 8 queries and 7 commands', () => {
+    expect(CONTRACT.queries).toHaveLength(8);
+    expect(CONTRACT.commands).toHaveLength(7);
   });
 
   it('stays under the C2 ceiling', () => {
     const total = CONTRACT.queries.length + CONTRACT.commands.length;
-    // 12 at first freeze; writeArtifact was added in I3 so markdown that is
-    // not the plan file can be edited (F6). Each addition should have to
-    // justify itself against this number.
-    expect(total).toBe(13);
+    // The contract has grown: 12 at first freeze, +writeArtifact in I3 (F6),
+    // +chooseCareerRoot and +getWorkspace in I4 (the app had no way to pick a
+    // folder, and every pane was discovering the same missing one).
+    //
+    // 15 of 20 is three quarters of the budget spent before the app has
+    // sessions. Each further addition should have to argue that the frontend
+    // is not reaching for something the backend should be deciding.
+    expect(total).toBe(15);
     // C2 is a tripwire, and a tripwire nobody checks is decoration. Adding a
     // thirteenth command is the moment to ask whether the frontend is reaching
     // for something the backend should be deciding.
