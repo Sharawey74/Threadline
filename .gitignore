@@ -4,6 +4,10 @@ TASKS.md
 CLAUDE.md
 *.backup-*.md
 
+# docs/ is part of the planning layer too. ADRs live on disk beside the repo
+# rather than inside it; the reasoning stays private.
+docs/
+
 # ── Go ────────────────────────────────────────────────────────
 *.exe
 *.exe~
