@@ -1,4 +1,4 @@
-import { Moon, PanelLeft, PanelRight, Sun } from 'lucide-react';
+import { Moon, PanelLeft, PanelRight, Settings as SettingsIcon, Sun } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAsync } from '../hooks/useAsync';
@@ -11,6 +11,7 @@ import { Explorer } from './Explorer';
 import { FirstRun } from './FirstRun';
 import { Layout } from './Layout';
 import { Palette } from './Palette';
+import { Settings } from './Settings';
 import { AsyncView, Empty } from './States';
 import { StatusBar } from './StatusBar';
 import { TabBar } from './TabBar';
@@ -69,6 +70,13 @@ export function Workbench() {
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [palette, setPalette] = useState(false);
 
+  /*
+   * Which view is showing. useState, not a router: there are no URLs, no back
+   * button and no deep links to support, and four views is well under the
+   * threshold at which a router would earn its dependency (View-Map).
+   */
+  const [view, setView] = useState<'workbench' | 'settings'>('workbench');
+
   // Flattened out of the rail's tree so the palette can reach a document
   // without the folder it lives in having to be expanded first.
   const openable = useMemo(
@@ -87,6 +95,9 @@ export function Workbench() {
       },
       'mod+k': () => {
         setPalette(true);
+      },
+      ',': () => {
+        setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
       },
     }),
     [tabs.blur, toggleTheme],
@@ -145,6 +156,14 @@ export function Workbench() {
             run: tabs.blur,
           },
           {
+            id: 'settings',
+            label: view === 'settings' ? 'Back to the workbench' : 'Settings',
+            hint: ',',
+            run: () => {
+              setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
+            },
+          },
+          {
             id: 'preview',
             label: 'View: Preview',
             run: () => {
@@ -175,6 +194,10 @@ export function Workbench() {
         title={
           <TitleBar
             root={ws.status === 'ready' ? ws.data.careerRoot : ''}
+            settings={view === 'settings'}
+            onToggleSettings={() => {
+              setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
+            }}
             reading={reading}
             onToggleReading={() => {
               setReading((on) => !on);
@@ -211,7 +234,17 @@ export function Workbench() {
           </AsyncView>
         }
         viewer={
-          active === null ? (
+          view === 'settings' ? (
+            <Settings
+              careerRoot={ws.status === 'ready' ? ws.data.careerRoot : ''}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onRootChanged={() => {
+                setView('workbench');
+                setReloads((n) => n + 1);
+              }}
+            />
+          ) : active === null ? (
             <Empty
               title="Nothing open"
               hint="Choose a document from the rail. The checklist is on the right."
@@ -250,12 +283,16 @@ export function Workbench() {
 
 function TitleBar({
   root,
+  settings,
+  onToggleSettings,
   reading,
   onToggleReading,
   theme,
   onToggleTheme,
 }: {
   root: string;
+  settings: boolean;
+  onToggleSettings: () => void;
   reading: boolean;
   onToggleReading: () => void;
   theme: string;
@@ -289,6 +326,17 @@ function TitleBar({
         ) : (
           <PanelRight className="wb-icon" aria-hidden="true" />
         )}
+      </button>
+
+      <button
+        type="button"
+        className="wb-icon-btn"
+        aria-pressed={settings}
+        aria-label={settings ? 'Back to the workbench' : 'Settings'}
+        title="Settings (,)"
+        onClick={onToggleSettings}
+      >
+        <SettingsIcon className="wb-icon" aria-hidden="true" />
       </button>
 
       <button

@@ -175,4 +175,43 @@ describe('the workbench', () => {
     expect(screen.queryByRole('complementary', { name: 'Plan' })).toBeNull();
     expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
   });
+
+  describe('settings', () => {
+    // The career folder could be chosen on first run and never changed again.
+    // chooseCareerRoot was bound; nothing after first run called it.
+    it('opens settings and offers to change the career folder', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+
+      expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Change…' })).toBeTruthy();
+    });
+
+    it('goes back to the workbench', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      await user.click(screen.getByRole('button', { name: 'Back to the workbench' }));
+
+      expect(screen.queryByRole('heading', { name: 'Settings', level: 1 })).toBeNull();
+    });
+
+    // The rail and the plan stay put. Settings replaces the document being
+    // read, not the whole window, so coming back does not cost the tabs.
+    it('keeps the rail and the plan while settings is open', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+
+      expect(screen.getByRole('complementary', { name: 'Material' })).toBeTruthy();
+      expect(screen.getByRole('complementary', { name: 'Plan' })).toBeTruthy();
+    });
+  });
 });
