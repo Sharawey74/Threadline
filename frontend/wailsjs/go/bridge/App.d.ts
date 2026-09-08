@@ -3,6 +3,9 @@
 import {workspace} from '../models';
 import {plan} from '../models';
 import {store} from '../models';
+import {bridge} from '../models';
+
+export function ChooseCareerRoot():Promise<string>;
 
 export function EndSession(arg1:number,arg2:string,arg3:string):Promise<void>;
 
@@ -17,6 +20,8 @@ export function GetPosition(arg1:number):Promise<store.Position>;
 export function GetReconciliation():Promise<Array<plan.Check>>;
 
 export function GetTopics():Promise<Array<plan.Topic>>;
+
+export function GetWorkspace():Promise<bridge.Workspace>;
 
 export function ReadArtifact(arg1:number):Promise<workspace.Content>;
 

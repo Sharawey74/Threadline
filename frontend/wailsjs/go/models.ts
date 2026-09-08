@@ -1,3 +1,26 @@
+export namespace bridge {
+	
+	export class Workspace {
+	    careerRoot: string;
+	    planFile: string;
+	    hasPlan: boolean;
+	    problem: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Workspace(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.careerRoot = source["careerRoot"];
+	        this.planFile = source["planFile"];
+	        this.hasPlan = source["hasPlan"];
+	        this.problem = source["problem"];
+	    }
+	}
+
+}
+
 export namespace plan {
 	
 	export class Check {
