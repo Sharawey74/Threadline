@@ -304,6 +304,11 @@ function ArtifactPane({ artifact }: { artifact: Artifact }) {
   const loadPosition = useCallback(() => ipc().getPosition(artifact.id), [artifact.id]);
   const position = useAsync(loadPosition);
 
+  const saveContent = useCallback(
+    (body: string) => ipc().writeArtifact(artifact.id, body),
+    [artifact.id],
+  );
+
   return (
     <AsyncView
       state={content}
@@ -320,7 +325,17 @@ function ArtifactPane({ artifact }: { artifact: Artifact }) {
             title={artifact.title}
           />
         ) : (
-          <MarkdownViewer source={c.body} title={artifact.title} />
+          <MarkdownViewer
+            source={c.body}
+            title={artifact.title}
+            readOnly={artifact.isPlanFile}
+            readOnlyReason={
+              artifact.isPlanFile
+                ? 'The plan file changes only by ticking a checkbox, so that nothing else in it can move.'
+                : undefined
+            }
+            onSave={artifact.isPlanFile ? undefined : saveContent}
+          />
         )
       }
     </AsyncView>
