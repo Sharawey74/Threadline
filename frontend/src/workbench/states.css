@@ -1,0 +1,48 @@
+.st {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+  color: var(--fg-muted);
+}
+
+.st-title {
+  margin: 0;
+  color: var(--fg);
+}
+
+.st-detail {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  /* Backend messages can be long and carry paths. Wrap rather than clip:
+     a truncated error is an error nobody can act on. */
+  overflow-wrap: anywhere;
+}
+
+.st-text {
+  margin: 0;
+  color: var(--fg-faint);
+}
+
+.st-failed .st-detail {
+  font-family: var(--font-mono);
+  color: var(--drift);
+}
+
+.st-action {
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.st-action:hover {
+  border-color: var(--accent);
+}

@@ -1,0 +1,126 @@
+.wb-topic select {
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg);
+  background: var(--bg-inset);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  max-width: 320px;
+}
+
+.wb-open {
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-material {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wb-material-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--step-0);
+  text-align: left;
+  color: var(--fg-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  /* Filenames are long and must not be truncated into ambiguity. */
+  overflow-wrap: anywhere;
+}
+
+.wb-material-item:hover {
+  background: var(--bg-raised);
+  color: var(--fg);
+}
+
+.wb-material-item.is-open {
+  color: var(--fg);
+  background: var(--accent-quiet);
+}
+
+.wb-stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: var(--step-0);
+}
+
+.wb-stats dt {
+  color: var(--fg-faint);
+}
+
+.wb-stats dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  color: var(--fg);
+}
+
+.wb-timer {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-2);
+}
+
+.wb-quiet {
+  color: var(--fg-faint);
+  font-size: var(--step-0);
+  font-style: italic;
+}
+
+.wb-note {
+  width: 100%;
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  resize: vertical;
+}
+
+.wb-note::placeholder {
+  color: var(--fg-faint);
+}
+
+.wb-pane {
+  padding: var(--space-3) 0;
+}
+
+.wb-text {
+  margin: 0;
+  padding: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.wb-theme {
+  margin-left: auto;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--step-1);
+  line-height: 1;
+  color: var(--fg-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.wb-theme:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}

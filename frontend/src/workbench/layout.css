@@ -1,0 +1,112 @@
+/*
+ * The workbench frame.
+ *
+ * Grid rather than flex: the regions are a fixed two-column arrangement with a
+ * header spanning both, which is exactly what grid-template-areas describes and
+ * what nested flex containers would only approximate.
+ */
+
+.wb {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "rail   viewer";
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+  grid-template-rows: var(--header-height) minmax(0, 1fr);
+  height: 100%;
+}
+
+/*
+ * minmax(0, 1fr) rather than 1fr on both axes is deliberate. A grid track
+ * defaults to min-content, so a wide PDF page or a long unbroken filename would
+ * push the viewer past the window and force the whole app to scroll sideways.
+ */
+
+.wb-header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+.wb-rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-inset);
+  border-right: 1px solid var(--border);
+}
+
+.wb-region {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+
+/* The material list is the only region that grows; everything below it keeps
+   its natural height so the note box stays put. */
+.wb-rail-material {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wb-region-label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+
+.wb-rail-note {
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.wb-viewer {
+  grid-area: viewer;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
+}
+
+/*
+ * Below 900px the rail would leave the viewer too narrow to read a PDF page in,
+ * so it collapses to a strip above the viewer instead of squeezing both.
+ */
+@media (max-width: 900px) {
+  .wb {
+    grid-template-areas:
+      "header"
+      "rail"
+      "viewer";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--header-height) auto minmax(0, 1fr);
+  }
+
+  .wb-rail {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wb-region,
+  .wb-rail-note {
+    border-bottom: none;
+    border-top: none;
+    border-right: 1px solid var(--border);
+  }
+}
