@@ -22,6 +22,14 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // A leading underscore marks a parameter that exists to satisfy an
+      // interface but is deliberately unused - a mock implementing a command
+      // it does not need to act on, for instance. Renaming is the signal;
+      // deleting the parameter would break the signature.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
     },
   },
 );
