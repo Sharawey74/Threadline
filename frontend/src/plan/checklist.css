@@ -27,8 +27,8 @@
 
 .cl-label input {
   /* The box is a click target for a write to a real file. Give it room. */
-  width: 15px;
-  height: 15px;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
   margin: 0;
   accent-color: var(--accent);
   cursor: pointer;
@@ -73,7 +73,12 @@
 
 .cl-error {
   margin: 0;
-  padding: var(--space-2) var(--space-3) var(--space-3) 34px;
+  /* Indented to line up under the item's text rather than under its checkbox,
+     so the message reads as belonging to that row. Derived from the row's own
+     padding and the box beside it, not measured off a screenshot - 34px was a
+     magic number that would drift the moment either changed. */
+  padding: var(--space-2) var(--space-3) var(--space-3)
+    calc(var(--space-3) + var(--checkbox-size) + var(--space-2));
   color: var(--drift);
   font-size: var(--step-0);
 }

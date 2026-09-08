@@ -79,6 +79,11 @@
   /* Prose is capped so a line never runs the width of a 1920px window. */
   --measure: 62ch;
 
+  /* The checkbox the plan file is written through. Named because the error
+     message below a row indents to clear it, and a magic number there would
+     drift the moment this changed. */
+  --checkbox-size: 15px;
+
   --radius: 6px;
   /*
    * A proportion with both ends pinned, not a fixed size. At 260px flat the
