@@ -1,12 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useAsync } from '../hooks/useAsync';
 import { ipc } from '../ipc';
 import type { Artifact, Item, Plan } from '../ipc';
 import { Checklist } from '../plan/Checklist';
+import { MarkdownViewer } from '../viewers/MarkdownViewer';
 import { PdfViewer } from '../viewers/PdfViewer';
 import { Layout } from './Layout';
 import { AsyncView, Empty } from './States';
+import { useShortcuts } from './useShortcuts';
+import { useTheme } from './useTheme';
 import './workbench.css';
 
 /**
@@ -33,6 +36,21 @@ export function Workbench() {
   );
   const material = useAsync(loadMaterial);
 
+  const [theme, toggleTheme] = useTheme();
+
+  const shortcuts = useMemo(
+    () => ({
+      // Escape returns to the checklist. It is the one screen that is always
+      // valid, so it is the one thing a key should always be able to reach.
+      Escape: () => {
+        setArtifact(null);
+      },
+      't': toggleTheme,
+    }),
+    [toggleTheme],
+  );
+  useShortcuts(shortcuts);
+
   const [planVersion, setPlanVersion] = useState(0);
   const onTick = useCallback(
     async (anchor: string, checked: boolean) => {
@@ -57,6 +75,8 @@ export function Workbench() {
             setArtifact(null);
           }}
           artifact={artifact}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       }
       material={
@@ -114,11 +134,15 @@ function Header({
   selected,
   onSelect,
   artifact,
+  theme,
+  onToggleTheme,
 }: {
   topics: string[];
   selected: string | null;
   onSelect: (slug: string) => void;
   artifact: Artifact | null;
+  theme: string;
+  onToggleTheme: () => void;
 }) {
   return (
     <>
@@ -139,6 +163,15 @@ function Header({
         </select>
       </label>
       <span className="wb-open">{artifact?.title ?? 'Checklist'}</span>
+      <button
+        type="button"
+        className="wb-theme"
+        onClick={onToggleTheme}
+        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+        title="Toggle theme (t)"
+      >
+        {theme === 'dark' ? '☾' : '☀'}
+      </button>
     </>
   );
 }
@@ -287,7 +320,7 @@ function ArtifactPane({ artifact }: { artifact: Artifact }) {
             title={artifact.title}
           />
         ) : (
-          <pre className="wb-text">{c.body}</pre>
+          <MarkdownViewer source={c.body} title={artifact.title} />
         )
       }
     </AsyncView>
