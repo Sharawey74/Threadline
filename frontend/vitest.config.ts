@@ -6,6 +6,7 @@ export default defineConfig({
     // the majority of what I3 delivers.
     environment: 'jsdom',
     globals: false,
+    setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     restoreMocks: true,
   },
