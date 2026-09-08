@@ -11,6 +11,8 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "dompurify": "^3.4.15",
+    "marked": "^18.0.12",
     "pdfjs-dist": "^6.3.289",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
