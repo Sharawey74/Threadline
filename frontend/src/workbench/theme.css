@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /*
  * Design tokens.
  *
@@ -32,8 +34,15 @@
   --warn: #d4a24c;
   --drift: #d9776b;
 
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+  /*
+   * Both faces are vendored through @fontsource and bundled into the binary.
+   * A Google Fonts @import would be a network call (C6, N5) and would fail
+   * silently offline - the face simply would not arrive and the fallback would
+   * render, with nothing anywhere to say why. The system stacks stay as
+   * fallbacks for the frame before the woff2 is decoded.
+   */
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
 
   --step-0: 0.8125rem;
   --step-1: 0.9375rem;
@@ -54,6 +63,46 @@
    */
   --rail-width: clamp(220px, 22vw, 320px);
   --header-height: 44px;
+}
+
+/*
+ * The Tailwind theme, mapped onto the tokens above rather than duplicating
+ * them.
+ *
+ * Every entry points at an existing custom property, so `bg-bg` and
+ * `text-fg-muted` resolve through the same variables the hand-written CSS
+ * already uses. That matters for the light theme: `[data-theme="light"]`
+ * reassigns `--bg`, and because the utility compiles to `var(--color-bg)`
+ * which is `var(--bg)`, the swap reaches Tailwind classes for free. Defining
+ * the palette twice would mean the two halves of the app could disagree about
+ * what "raised" means.
+ */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-inset: var(--bg-inset);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-quiet: var(--accent-quiet);
+
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-drift: var(--drift);
+
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+
+  --text-step-0: var(--step-0);
+  --text-step-1: var(--step-1);
+  --text-step-2: var(--step-2);
+
+  --radius-token: var(--radius);
 }
 
 :root[data-theme="light"] {
