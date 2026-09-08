@@ -1,0 +1,113 @@
+.pl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 45%);
+}
+
+.pl {
+  position: fixed;
+  /* Not vertically centred: a list that grows downward from a fixed point does
+     not shift the input under the cursor as results come and go. */
+  top: 14vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - var(--space-7)));
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 45%);
+}
+
+.pl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pl-input {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: var(--space-4);
+  font: inherit;
+  font-size: var(--step-2);
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pl-input::placeholder {
+  color: var(--fg-faint);
+}
+
+.pl-input:focus-visible {
+  /* The dialog is the focus ring here; a second one inside it is noise. */
+  outline: none;
+}
+
+.pl-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.pl-empty {
+  padding: var(--space-5) var(--space-3);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.pl-group [cmdk-group-heading] {
+  padding: var(--space-3) var(--space-2) var(--space-1);
+  font-size: var(--step-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.pl-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--step-1);
+  color: var(--fg);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* cmdk moves this attribute with the arrow keys rather than moving focus, so
+   the input keeps it and typing never stops working. */
+.pl-item[data-selected='true'] {
+  background: var(--accent-quiet);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.pl-path,
+.pl-kbd {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--fg-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pl-kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

@@ -78,3 +78,10 @@ coverage.out
 coverage.html
 *.prof
 *.pprof
+
+# ── Design canvas exports ─────────────────────────────────────
+# Mockups exported from Claude Design. They are a reference for building the
+# UI, not part of it: the .dc.html artboards carry inlined assets and a
+# support.js runtime that nothing in the app imports. Reference material lives
+# beside the repo like the rest of the planning layer.
+frontend/Scope section names and mockups/

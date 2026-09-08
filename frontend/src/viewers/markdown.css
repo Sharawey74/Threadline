@@ -75,7 +75,10 @@
 .md-rendered {
   /* Prose wants a measure. Beyond about 80 characters the eye loses the line
      it was on, and this app exists to be read in for hours. */
-  max-width: 78ch;
+  /* The canvas caps reading copy at 62ch. 78 was set before there was a scale
+     to be consistent with, and a line that long is measurably slower to read
+     on a 1920px window. */
+  max-width: var(--measure);
   line-height: 1.6;
 }
 

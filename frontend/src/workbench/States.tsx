@@ -11,10 +11,32 @@ import './states.css';
  * designed states by construction rather than by the author remembering.
  */
 
-export function Loading({ label }: { label: string }) {
+/**
+ * Loading, with the space the content will take already reserved.
+ *
+ * A line of text that is replaced by a list pushes everything under it down
+ * the moment the data lands, and on a rail that is the whole pane jumping. The
+ * skeleton holds roughly the right shape so the arrival is a fill rather than
+ * a shove.
+ *
+ * The label is still there for a screen reader, which cannot see a shape. It
+ * is announced politely rather than assertively: the app is working normally
+ * and should not interrupt whatever is being read.
+ */
+export function Loading({ label, rows = 5 }: { label: string; rows?: number }) {
   return (
-    <div className="st" role="status" aria-live="polite">
-      <p className="st-text">{label}</p>
+    <div className="st-loading" role="status" aria-live="polite">
+      <span className="st-sr">{label}</span>
+      {Array.from({ length: rows }, (_, i) => (
+        <span
+          key={i}
+          className="st-skel"
+          aria-hidden="true"
+          // Uneven widths, deterministic per row. A column of identical bars
+          // reads as a rendering fault; varying them reads as text.
+          style={{ width: `${String(58 + ((i * 37) % 38))}%` }}
+        />
+      ))}
     </div>
   );
 }

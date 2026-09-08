@@ -77,4 +77,29 @@ describe('useShortcuts', () => {
 
     expect(t).not.toHaveBeenCalled();
   });
+
+  // The note box is always present and often focused, so a palette that could
+  // not be opened from inside it would be unreachable exactly when it is most
+  // wanted. mod+k in a text field is not someone typing "k".
+  it('fires a modifier combination even while typing in the note box', async () => {
+    const palette = vi.fn();
+    render(<Harness shortcuts={{ 'mod+k': palette }} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Session note'));
+    await user.keyboard('{Control>}k{/Control}');
+
+    expect(palette).toHaveBeenCalledOnce();
+  });
+
+  it('still ignores a bare letter typed into a text input', async () => {
+    const t = vi.fn();
+    render(<Harness shortcuts={{ t }} />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Search'));
+    await user.keyboard('t');
+
+    expect(t).not.toHaveBeenCalled();
+  });
 });

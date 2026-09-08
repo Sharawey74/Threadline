@@ -5,6 +5,20 @@ import App from './App';
 import { setIPC } from './ipc';
 import { MockIPC } from './ipc/mock';
 import { WailsIPC } from './ipc/wails';
+/*
+ * Self-hosted faces, latin subset only, and only the weights actually used.
+ *
+ * The default @fontsource entry point pulls every subset it ships - Cyrillic,
+ * Greek, Vietnamese - which came to 680 kB across 54 files for an app whose
+ * content is entirely English. Each one lands in the binary, so it counts
+ * against N4 (<20 MB) and buys nothing.
+ */
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+
 import './workbench/theme.css';
 
 /**

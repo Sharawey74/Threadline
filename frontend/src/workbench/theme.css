@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /*
  * Design tokens.
  *
@@ -12,38 +14,75 @@
  */
 
 :root {
-  /* Surfaces, back to front. */
-  --bg: #14161a;
-  --bg-raised: #1a1d23;
-  --bg-inset: #0f1115;
-  --border: #262a32;
-  --border-strong: #363b45;
+  /*
+   * Surfaces, back to front. Values from the design canvas, 8 Sep 2026.
+   * --bg-inset is the canvas's --sunk; --bg-raised is its --raised.
+   */
+  --bg: #0f172a;
+  --bg-raised: #1b2336;
+  --bg-inset: #0b1120;
+  --bg-hover: #233047;
+  --border: #475569;
+  --border-strong: #64748b;
 
-  /* Text, by how much attention it deserves. */
-  --fg: #e4e6eb;
-  --fg-muted: #9aa1ad;
-  --fg-faint: #6b727e;
+  /*
+   * Text, by how much attention it deserves.
+   *
+   * --fg-faint sits close to --fg-muted on purpose. Both are real text, so
+   * both must clear 4.5:1 on every surface above, and against a #233047 hover
+   * row that floor does not leave room for three distinct weights. The
+   * measured alternative was 3.59:1, which is a contrast failure dressed up as
+   * a hierarchy. Two weights that pass beat three where one does not.
+   */
+  --fg: #f8fafc;
+  --fg-muted: #94a3b8;
+  --fg-faint: #909bad;
 
-  --accent: #6ea8fe;
-  --accent-quiet: #2b4a7d;
+  --accent: #22c55e;
+  --accent-quiet: rgb(34 197 94 / 14%);
 
   /* Reserved for meaning, never for decoration. */
-  --ok: #5fb87a;
-  --warn: #d4a24c;
-  --drift: #d9776b;
+  --ok: #22c55e;
+  --warn: #e0b252;
+  --drift: #f87171;
 
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", monospace;
+  /*
+   * Both faces are vendored through @fontsource and bundled into the binary.
+   * A Google Fonts @import would be a network call (C6, N5) and would fail
+   * silently offline - the face simply would not arrive and the fallback would
+   * render, with nothing anywhere to say why. The system stacks stay as
+   * fallbacks for the frame before the woff2 is decoded.
+   */
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
 
-  --step-0: 0.8125rem;
-  --step-1: 0.9375rem;
-  --step-2: 1.125rem;
+  /* Type scale from the design canvas. step-0..2 keep their old values so
+     nothing already using them shifts. */
+  --step-micro: 0.6875rem; /* 11px - status bar, region labels, key hints */
+  --step-0: 0.8125rem; /* 13px - rail, checklist rows, mono paths */
+  --step-1: 0.9375rem; /* 15px - UI default: controls, tabs */
+  --step-prose: 1.0625rem; /* 17px - reading copy, at line-height 1.7 */
+  --step-2: 1.125rem; /* 18px - pane and section headings */
+  --step-3: 1.25rem; /* 20px */
+  --step-4: 1.625rem; /* 26px - document title, view headings */
+  --step-5: 2.125rem; /* 34px - screen titles */
 
+  /* 4px base. */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Prose is capped so a line never runs the width of a 1920px window. */
+  --measure: 62ch;
+
+  /* The checkbox the plan file is written through. Named because the error
+     message below a row indents to clear it, and a magic number there would
+     drift the moment this changed. */
+  --checkbox-size: 15px;
 
   --radius: 6px;
   /*
@@ -52,27 +91,90 @@
    * screen — got less than the chrome around it. The floor keeps a long
    * filename readable; the ceiling stops the rail sprawling on a wide monitor.
    */
-  --rail-width: clamp(220px, 22vw, 320px);
+  --rail-width: clamp(240px, 22vw, 300px);
+  --plan-width: clamp(320px, 26vw, 400px);
+
+  /* Fixed chrome, pinned by the design canvas. --header-height is what the
+     current single-bar layout uses; Wave B replaces it with the three below. */
   --header-height: 44px;
+  --titlebar-height: 36px;
+  --tabbar-height: 40px;
+  --dochead-height: 52px;
+  --statusbar-height: 32px;
+
+  /* Panes animate to zero over this. Reduced motion collapses it below. */
+  --pane-collapse: 200ms;
+}
+
+/*
+ * The Tailwind theme, mapped onto the tokens above rather than duplicating
+ * them.
+ *
+ * Every entry points at an existing custom property, so `bg-bg` and
+ * `text-fg-muted` resolve through the same variables the hand-written CSS
+ * already uses. That matters for the light theme: `[data-theme="light"]`
+ * reassigns `--bg`, and because the utility compiles to `var(--color-bg)`
+ * which is `var(--bg)`, the swap reaches Tailwind classes for free. Defining
+ * the palette twice would mean the two halves of the app could disagree about
+ * what "raised" means.
+ */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-inset: var(--bg-inset);
+  --color-bg-hover: var(--bg-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-quiet: var(--accent-quiet);
+
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-drift: var(--drift);
+
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+
+  --text-step-micro: var(--step-micro);
+  --text-step-0: var(--step-0);
+  --text-step-1: var(--step-1);
+  --text-step-prose: var(--step-prose);
+  --text-step-2: var(--step-2);
+  --text-step-3: var(--step-3);
+  --text-step-4: var(--step-4);
+  --text-step-5: var(--step-5);
+
+  --radius-token: var(--radius);
 }
 
 :root[data-theme="light"] {
-  --bg: #f7f8fa;
+  --bg: #f8fafc;
   --bg-raised: #ffffff;
-  --bg-inset: #eceef2;
-  --border: #dcdfe5;
-  --border-strong: #c2c7d0;
+  --bg-inset: #eef2f7;
+  --bg-hover: #e2e8f0;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
 
-  --fg: #1a1d23;
-  --fg-muted: #5a616d;
-  --fg-faint: #878e9a;
+  --fg: #0f172a;
+  --fg-muted: #475569;
+  --fg-faint: #5b6675;
 
-  --accent: #2563c7;
-  --accent-quiet: #cbdcf7;
+  /*
+   * Darker than the canvas's #15803D, which measured 4.46:1 against
+   * --bg-inset - under the floor, and not caught by the canvas's own note
+   * because it only checked the accent against the window ground.
+   */
+  --accent: #166534;
+  --accent-quiet: rgb(22 101 52 / 12%);
 
-  --ok: #2f7d4a;
-  --warn: #9a6b16;
-  --drift: #b5382a;
+  --ok: #166534;
+  --warn: #8a5a00;
+  --drift: #b42318;
 }
 
 * {
@@ -99,6 +201,15 @@ body {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/*
+ * Nothing removes the ring. A control that suppresses its own outline is
+ * unreachable to anyone working without a mouse, and the failure is invisible
+ * until someone tries - which is what QA Cycle 4 does deliberately.
+ */
+:focus-visible:focus-visible {
+  outline-style: solid;
 }
 
 /*

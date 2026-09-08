@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { Item } from '../ipc';
 import './checklist.css';
@@ -14,6 +14,11 @@ import './checklist.css';
  *
  * Reverting is not enough on its own, though. A box that silently flips back
  * looks like a misclick, so a failure also surfaces the reason.
+ *
+ * Items are grouped by the plan's own sections, with the headings pinned. Flat,
+ * the real file is 55 rows of similar-looking text and there is nothing to say
+ * that "Notes track - 15h" belongs to September rather than to October. The
+ * sections are how the plan is written; showing them is showing the plan.
  */
 export interface ChecklistProps {
   items: Item[];
@@ -25,7 +30,10 @@ export function Checklist({ items, onTick }: ChecklistProps) {
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set());
   /** Optimistic overrides, dropped once the source data catches up. */
   const [optimistic, setOptimistic] = useState<Record<string, boolean>>({});
-  const [failure, setFailure] = useState<{ anchor: string; message: string } | null>(null);
+  const [failure, setFailure] = useState<{
+    anchor: string;
+    message: string;
+  } | null>(null);
 
   const handleTick = useCallback(
     async (item: Item, checked: boolean) => {
@@ -60,47 +68,75 @@ export function Checklist({ items, onTick }: ChecklistProps) {
     [onTick, pending],
   );
 
+  /*
+   * Grouped in file order, not alphabetically or by role. The plan is a
+   * document meant to be read top to bottom, and reordering its sections here
+   * would make the checklist disagree with the file it writes to.
+   */
+  const sections = useMemo(() => {
+    const byName = new Map<string, Item[]>();
+    for (const item of items) {
+      const group = byName.get(item.section);
+      if (group) group.push(item);
+      else byName.set(item.section, [item]);
+    }
+    return [...byName.entries()].map(([name, group]) => ({
+      name,
+      items: group,
+    }));
+  }, [items]);
+
   if (items.length === 0) {
-    return (
-      <p className="cl-empty">
-        No checklist items in this section.
-      </p>
-    );
+    return <p className="cl-empty">No checklist items in this section.</p>;
   }
 
   return (
-    <ul className="cl" role="list">
-      {items.map((item) => {
-        const checked = optimistic[item.anchor] ?? item.checked;
-        const busy = pending.has(item.anchor);
-        const failed = failure?.anchor === item.anchor;
+    <div className="cl">
+      {sections.map((section) => (
+        <section key={section.name} className="cl-section">
+          <h3 className="cl-section-head">
+            <span className="cl-section-name">{section.name}</span>
+            <span className="cl-section-count" aria-hidden="true">
+              {section.items.filter((i) => optimistic[i.anchor] ?? i.checked).length}/
+              {section.items.length}
+            </span>
+          </h3>
 
-        return (
-          <li key={item.anchor} className="cl-item">
-            <label className="cl-label">
-              <input
-                type="checkbox"
-                checked={checked}
-                disabled={busy}
-                onChange={(e) => {
-                  void handleTick(item, e.target.checked);
-                }}
-              />
-              <span className={checked ? 'cl-text cl-text-done' : 'cl-text'}>
-                {item.text}
-              </span>
-              <Hours item={item} />
-            </label>
+          <ul className="cl-items" role="list">
+            {section.items.map((item) => {
+              const checked = optimistic[item.anchor] ?? item.checked;
+              const busy = pending.has(item.anchor);
+              const failed = failure?.anchor === item.anchor;
 
-            {failed && (
-              <p className="cl-error" role="alert">
-                Could not update the plan file: {failure.message}
-              </p>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+              return (
+                <li key={item.anchor} className="cl-item">
+                  <label className="cl-label">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={busy}
+                      onChange={(e) => {
+                        void handleTick(item, e.target.checked);
+                      }}
+                    />
+                    <span className={checked ? 'cl-text cl-text-done' : 'cl-text'}>
+                      {item.text}
+                    </span>
+                    <Hours item={item} />
+                  </label>
+
+                  {failed && (
+                    <p className="cl-error" role="alert">
+                      Could not update the plan file: {failure.message}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 

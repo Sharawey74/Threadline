@@ -10,17 +10,22 @@ export type Shortcuts = Record<string, () => void>;
  * the check once costs nothing and avoids a shortcut that silently does not
  * work if that ever changes.
  *
- * A shortcut never fires while the user is typing. The note box is always
- * focused and always present, so a bare-letter shortcut that stole keystrokes
- * would make the note box unusable — and the note box is the feature the whole
- * anti-homework design rests on.
+ * A bare-letter shortcut never fires while the user is typing. The note box is
+ * always present, so a shortcut that stole keystrokes would make it unusable —
+ * and the note box is the feature the whole anti-homework design rests on.
+ *
+ * A combination with a modifier does fire, wherever the cursor is. `mod+k` in
+ * a text box is not someone typing "k"; it is someone asking for the palette,
+ * and being unreachable from the one field that is always focused would defeat
+ * the reason the palette exists.
  */
 export function useShortcuts(shortcuts: Shortcuts): void {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (isTyping(e.target)) return;
+      const modified = e.ctrlKey || e.metaKey;
+      if (!modified && isTyping(e.target)) return;
 
-      const combo = [e.ctrlKey || e.metaKey ? 'mod' : '', e.shiftKey ? 'shift' : '', e.key]
+      const combo = [modified ? 'mod' : '', e.shiftKey ? 'shift' : '', e.key]
         .filter(Boolean)
         .join('+');
 

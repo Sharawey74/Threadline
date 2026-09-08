@@ -28,10 +28,13 @@ beforeEach(() => {
   setIPC(new MockIPC());
 });
 
-/**
- * I3's exit criterion is a claim about the whole workbench: usable in a plain
- * browser against fixture data. These drive it as a user would.
- */
+/** Waits for the material rail to finish its first read. */
+async function railReady() {
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /06 - System Design/ })).toBeTruthy();
+  });
+}
+
 describe('the workbench', () => {
   it('shows the checklist once the plan loads', async () => {
     render(<Workbench />);
@@ -42,108 +45,173 @@ describe('the workbench', () => {
     expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
   });
 
-  it('asks for a topic before showing material', async () => {
-    render(<Workbench />);
-    // An empty rail with no explanation reads as a broken app.
-    await waitFor(() => {
-      expect(screen.getByText('No topic selected')).toBeTruthy();
+  describe('the material rail', () => {
+    // The rail used to show one topic at a time behind a select, which threw
+    // away the folder structure the files already have on disk.
+    it('lists every topic without one having to be chosen first', async () => {
+      render(<Workbench />);
+      await railReady();
+
+      for (const slug of ['02 - Databases & Storage', '06 - System Design', '09 - AI']) {
+        expect(screen.getByRole('button', { name: new RegExp(slug) })).toBeTruthy();
+      }
+    });
+
+    it('counts each folder from the files it actually read', async () => {
+      render(<Workbench />);
+      await railReady();
+
+      // Measured, not declared: no field on Topic carries a count, so a number
+      // here could only have come from reading the list (C5).
+      expect(screen.getByRole('button', { name: '06 - System Design, 3 files' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: '02 - Databases & Storage, 1 file' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: '09 - AI, 0 files' })).toBeTruthy();
+    });
+
+    it('filters across every topic at once', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.type(screen.getByLabelText('Filter material'), 'ACID');
+
+      expect(screen.getByRole('button', { name: /ACID/ })).toBeTruthy();
+      // A topic with no match disappears rather than sitting there empty.
+      expect(screen.queryByRole('button', { name: /09 - AI/ })).toBeNull();
     });
   });
 
-  it('lists a topic\'s material once one is chosen', async () => {
-    const user = userEvent.setup();
-    render(<Workbench />);
+  describe('tabs', () => {
+    it('opens a document from the rail', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
 
-    await screen.findByRole('option', { name: '06 - System Design' });
-    await user.selectOptions(screen.getByRole('combobox'), '06 - System Design');
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Fundamentals v3' })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /Fundamentals v3/ })).toBeTruthy();
+    });
+
+    // The whole reason tabs exist: comparing a plan item against the document
+    // it points at used to mean closing one to see the other.
+    it('keeps the first document open when a second is opened', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
+      await user.click(screen.getByRole('button', { name: /My notes/ }));
+
+      expect(screen.getByRole('tab', { name: /Fundamentals v3/ })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /My notes/ })).toBeTruthy();
+    });
+
+    it('closes one document and leaves the other open', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
+      await user.click(screen.getByRole('button', { name: /My notes/ }));
+      await user.click(screen.getByRole('button', { name: 'Close Fundamentals v3' }));
+
+      expect(screen.queryByRole('tab', { name: /Fundamentals v3/ })).toBeNull();
+      expect(screen.getByRole('tab', { name: /My notes/ })).toBeTruthy();
     });
   });
 
-  it('explains an empty topic rather than showing a blank rail', async () => {
-    const user = userEvent.setup();
-    render(<Workbench />);
+  describe('the status bar', () => {
+    // Reconciliation ran on every scan from I1 and nothing showed it. The
+    // checks were bound, typed, tested, and called by nobody.
+    it('surfaces a failing check rather than computing it and staying silent', async () => {
+      render(<Workbench />);
 
-    await screen.findByRole('option', { name: '09 - AI' });
-    await user.selectOptions(screen.getByRole('combobox'), '09 - AI');
-
-    await waitFor(() => {
-      expect(screen.getByText('No material in this topic')).toBeTruthy();
-    });
-  });
-
-  it('ticks an item through the bridge', async () => {
-    const user = userEvent.setup();
-    render(<Workbench />);
-
-    await waitFor(() => {
-      expect(screen.getAllByRole('checkbox').length).toBeGreaterThan(0);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /1 check fails/ })).toBeTruthy();
+      });
+      // Naming the failing check often saves the trip to go and look.
+      expect(screen.getByText(/Now -> Sun 30 Aug tasks vs heading/)).toBeTruthy();
     });
 
-    const boxes = screen.getAllByRole('checkbox');
-    const target = boxes.find((b) => !(b as HTMLInputElement).checked);
-    expect(target).toBeDefined();
+    it('says it is still checking rather than claiming everything passes', () => {
+      render(<Workbench />);
 
-    await user.click(target!);
-    expect((target as HTMLInputElement).checked).toBe(true);
-  });
-
-  it('opens an artifact and returns to the checklist', async () => {
-    const user = userEvent.setup();
-    render(<Workbench />);
-
-    await screen.findByRole('option', { name: '06 - System Design' });
-    await user.selectOptions(screen.getByRole('combobox'), '06 - System Design');
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Fundamentals v3' })).toBeTruthy();
+      // Null is "not read yet", which is not "nothing is wrong". A reassuring
+      // tick before the answer arrives is exactly the unmeasured claim C5 bans.
+      expect(screen.getByText('Checking the plan…')).toBeTruthy();
     });
-    await user.click(screen.getByRole('button', { name: 'Fundamentals v3' }));
-
-    // The mock serves markdown, so the text pane renders rather than the PDF one.
-    await waitFor(() => {
-      expect(screen.getByText(/Fixture artifact/)).toBeTruthy();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Checklist' }));
-    await waitFor(() => {
-      expect(screen.getByText(/Notes track/)).toBeTruthy();
-    });
-  });
-
-  it('clears the open artifact when the topic changes', async () => {
-    const user = userEvent.setup();
-    render(<Workbench />);
-
-    await screen.findByRole('option', { name: '06 - System Design' });
-    await user.selectOptions(screen.getByRole('combobox'), '06 - System Design');
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Fundamentals v3' })).toBeTruthy();
-    });
-    await user.click(screen.getByRole('button', { name: 'Fundamentals v3' }));
-
-    await user.selectOptions(screen.getByRole('combobox'), '02 - Databases & Storage');
-
-    // Keeping the selection would show the previous topic's document under the
-    // new topic's name.
-    await waitFor(() => {
-      expect(screen.getByText(/Notes track/)).toBeTruthy();
-    });
-    expect(screen.queryByRole('button', { name: 'Fundamentals v3' })).toBeNull();
   });
 
   it('keeps the note box present without being summoned', async () => {
     render(<Workbench />);
-    // A note you have to open is a note that does not get written.
-    expect(screen.getByLabelText('Session note')).toBeTruthy();
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Session note')).toBeTruthy();
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('does not show a running timer before sessions are recorded', async () => {
     render(<Workbench />);
-    // A clock that counts but records nothing would display a number nothing
-    // measured (C5). Sessions are I5.
-    expect(screen.getByText('not recording yet')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText(/Notes track/)).toBeTruthy();
+    });
+
+    // Sessions are I5. A timer that counted but recorded nothing would put a
+    // number on screen that nothing measured.
+    expect(screen.queryByText(/\d+:\d\d/)).toBeNull();
+  });
+
+  it('collapses both side panes in reading mode', async () => {
+    const user = userEvent.setup();
+    render(<Workbench />);
+    await railReady();
+
+    await user.click(
+      screen.getByRole('button', { name: /Reading mode: collapse both side panes/ }),
+    );
+
+    expect(screen.queryByRole('complementary', { name: 'Material' })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Plan' })).toBeNull();
+    expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
+  });
+
+  describe('settings', () => {
+    // The career folder could be chosen on first run and never changed again.
+    // chooseCareerRoot was bound; nothing after first run called it.
+    it('opens settings and offers to change the career folder', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+
+      expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Change…' })).toBeTruthy();
+    });
+
+    it('goes back to the workbench', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      await user.click(screen.getByRole('button', { name: 'Back to the workbench' }));
+
+      expect(screen.queryByRole('heading', { name: 'Settings', level: 1 })).toBeNull();
+    });
+
+    // The rail and the plan stay put. Settings replaces the document being
+    // read, not the whole window, so coming back does not cost the tabs.
+    it('keeps the rail and the plan while settings is open', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+
+      expect(screen.getByRole('complementary', { name: 'Material' })).toBeTruthy();
+      expect(screen.getByRole('complementary', { name: 'Plan' })).toBeTruthy();
+    });
   });
 });
