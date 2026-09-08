@@ -7,14 +7,17 @@ import { MockIPC } from './mock';
 // §4.1 froze, and hold the mock to behaving like the bridge it stands in for.
 
 describe('the frozen contract', () => {
-  it('is 7 queries and 5 commands', () => {
+  it('is 7 queries and 6 commands', () => {
     expect(CONTRACT.queries).toHaveLength(7);
-    expect(CONTRACT.commands).toHaveLength(5);
+    expect(CONTRACT.commands).toHaveLength(6);
   });
 
   it('stays under the C2 ceiling', () => {
     const total = CONTRACT.queries.length + CONTRACT.commands.length;
-    expect(total).toBe(12);
+    // 12 at first freeze; writeArtifact was added in I3 so markdown that is
+    // not the plan file can be edited (F6). Each addition should have to
+    // justify itself against this number.
+    expect(total).toBe(13);
     // C2 is a tripwire, and a tripwire nobody checks is decoration. Adding a
     // thirteenth command is the moment to ask whether the frontend is reaching
     // for something the backend should be deciding.
