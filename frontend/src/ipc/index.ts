@@ -82,7 +82,7 @@ export const CONTRACT = {
 /** The C2 ceiling. Exceeding it means the boundary is leaking. */
 export const CONTRACT_LIMIT = 20;
 
-let active: IPC | null = null;
+let active: IPC | null | undefined = null;
 
 /**
  * Installs the implementation the app will use.
@@ -94,6 +94,11 @@ export function setIPC(impl: IPC): void {
   active = impl;
 }
 
+/** Clears the installed implementation. Tests use this to isolate from each other. */
+export function resetIPC(): void {
+  active = null;
+}
+
 /**
  * Returns the installed implementation.
  *
@@ -102,7 +107,10 @@ export function setIPC(impl: IPC): void {
  * installed would hide it.
  */
 export function ipc(): IPC {
-  if (active === null) {
+  // Guards null AND undefined. Checking only for null let an implementation of
+  // `undefined` through, and the caller then got undefined back from a function
+  // typed as returning IPC - the exact silent failure this guard exists to stop.
+  if (active === null || active === undefined) {
     throw new Error('IPC not installed — call setIPC() before rendering');
   }
   return active;
