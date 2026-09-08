@@ -49,14 +49,63 @@ type App struct {
 	watcher    *watch.Watcher
 	stopWatch  context.CancelFunc
 	lastChecks []plan.Check
+
+	// Why the remembered folder could not be reopened, shown on the first-run
+	// screen rather than swallowed.
+	startupErr error
+
+	careerRoot string
+	planFile   string
+}
+
+// Workspace is what the frontend needs before it can render anything.
+//
+// It never fails for the ordinary reason of not having a folder yet. A query
+// that errors on the normal first state forces every caller to treat first run
+// as a fault, which is exactly what the current screen gets wrong.
+type Workspace struct {
+	CareerRoot string `json:"careerRoot"` // "" until one is chosen
+	PlanFile   string `json:"planFile"`
+	HasPlan    bool   `json:"hasPlan"`
+	Problem    string `json:"problem"` // why a remembered folder could not be used
 }
 
 // NewApp creates the bound application object.
 func NewApp() *App { return &App{} }
 
 // Startup is called by Wails when the app starts.
+//
+// The store lives beside the app rather than inside the career folder, so it
+// opens before a folder is known — and it is what remembers which folder was
+// chosen last time. F1 requires that choice to survive a restart; without this
+// the user re-picks their folder on every launch.
+//
+// A failure here is not fatal. The app opens on its first-run screen and says
+// what went wrong, which is more useful than refusing to start.
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+
+	dataDir, err := appDataDir()
+	if err != nil {
+		a.startupErr = err
+		return
+	}
+	st, err := store.Open(filepath.Join(dataDir, "threadline.db"))
+	if err != nil {
+		a.startupErr = fmt.Errorf("open database: %w", err)
+		return
+	}
+	a.store = st
+
+	saved, found, err := st.Meta(store.KeyCareerRoot)
+	if err != nil || !found {
+		return // first run, or the setting is unreadable; the picker handles it
+	}
+	// A remembered folder can be gone: moved, renamed, or on a drive that is
+	// not mounted. That is a first-run screen with an explanation, not a crash.
+	if err := a.useCareerRoot(saved); err != nil {
+		a.startupErr = err
+	}
 }
 
 // Shutdown is called by Wails as the window closes.
@@ -81,27 +130,78 @@ func (a *App) Shutdown(_ context.Context) {
 // leaving the frontend with an empty screen: F1 requires an invalid path to
 // fail with a message a person can act on, not a crash.
 func (a *App) SetCareerRoot(path string) error {
+	if err := a.useCareerRoot(path); err != nil {
+		return err
+	}
+	// Remembered only after it worked. Persisting a folder that failed to open
+	// would reproduce the failure on every launch.
+	return a.store.SetMeta(store.KeyCareerRoot, path)
+}
+
+// ChooseCareerRoot opens the native folder picker and adopts the choice.
+//
+// Returns the chosen path, or "" when the dialog was cancelled. Cancelling is
+// not an error: the user changed their mind, and reporting that as a failure
+// would put a red message on screen for a deliberate action.
+func (a *App) ChooseCareerRoot() (string, error) {
+	chosen, err := wailsruntime.OpenDirectoryDialog(a.ctx, wailsruntime.OpenDialogOptions{
+		Title: "Choose your career folder",
+	})
+	if err != nil {
+		return "", fmt.Errorf("open folder picker: %w", err)
+	}
+	if chosen == "" {
+		return "", nil
+	}
+	if err := a.SetCareerRoot(chosen); err != nil {
+		return "", err
+	}
+	return chosen, nil
+}
+
+// GetWorkspace reports whether a career folder is set, and what is wrong if
+// one was remembered but could not be used.
+func (a *App) GetWorkspace() (Workspace, error) {
+	w := Workspace{}
+	if a.startupErr != nil {
+		w.Problem = a.startupErr.Error()
+	}
+	if a.svc == nil {
+		return w, nil
+	}
+
+	w.CareerRoot = a.careerRoot
+	w.PlanFile = a.planFile
+	if _, err := os.Stat(a.planFile); err == nil {
+		w.HasPlan = true
+	}
+	return w, nil
+}
+
+// useCareerRoot adopts a folder without persisting it.
+//
+// Shared by Startup, which restores a remembered folder, and SetCareerRoot,
+// which adopts a new one. The store is not reopened: it lives beside the app,
+// not inside the career folder, so switching folders keeps the same database
+// and the history recorded in it.
+func (a *App) useCareerRoot(path string) error {
 	root, err := workspace.Open(path)
 	if err != nil {
 		return err
+	}
+	if a.store == nil {
+		return fmt.Errorf("database is not open")
 	}
 
 	dataDir, err := appDataDir()
 	if err != nil {
 		return err
 	}
-	st, err := store.Open(filepath.Join(dataDir, "threadline.db"))
-	if err != nil {
-		return fmt.Errorf("open database: %w", err)
-	}
 
-	// Replace only once the new root is known good, so a failed switch leaves
-	// the working one in place rather than a half-open app.
-	if a.store != nil {
-		_ = a.store.Close()
-	}
-	a.store = st
-	a.svc = workspace.NewService(root, st, filepath.Join(dataDir, plan.SnapshotDir))
+	a.svc = workspace.NewService(root, a.store, filepath.Join(dataDir, plan.SnapshotDir))
+	a.careerRoot = root.Dir()
+	a.planFile = root.PlanFile()
+	a.startupErr = nil
 
 	a.startWatching(root.PlanFile())
 	return nil
