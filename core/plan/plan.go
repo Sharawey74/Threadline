@@ -32,24 +32,29 @@ const (
 // not identity - Anchor is identity (Schema §5), because editing any line above
 // this one moves it without changing what it is.
 type Item struct {
-	Anchor  string // sha256 of role+section+normalised text; stable across line moves
-	LineNo  int    // 1-based
-	Column  int    // 0-based byte offset of '[' within the line
-	Checked bool
-	Raw     string // the line exactly as read, for byte-exact write-back
-	Text    string // markup stripped, for display and anchoring
-	Section string
-	Role    Role
+	Anchor  string `json:"anchor"` // sha256 of role+section+normalised text
+	LineNo  int    `json:"lineNo"` // 1-based
+	Checked bool   `json:"checked"`
+	Text    string `json:"text"` // markup stripped, for display and anchoring
+	Section string `json:"section"`
+	Role    Role   `json:"role"`
 
-	Order int // leading "**N.**", 0 when absent
+	Order int `json:"order"` // leading "**N.**", 0 when absent
 
-	Hours     float64
-	HoursConf Confidence
-	Pages     int
-	PagesConf Confidence
+	Hours     float64    `json:"hours"`
+	HoursConf Confidence `json:"hoursConf"`
+	Pages     int        `json:"pages"`
+	PagesConf Confidence `json:"pagesConf"`
 
-	Backticks []string
-	Notes     []string // why something was ambiguous - never discarded
+	Notes []string `json:"notes"` // why something was ambiguous - never discarded
+
+	// Write-back internals. They never cross the bridge: the frontend has no
+	// use for a byte offset, and shipping every raw line would roughly double
+	// the payload for data the UI cannot act on.
+	Column int    `json:"-"` // 0-based byte offset of '[' within the line
+	Raw    string `json:"-"` // the line exactly as read, for byte-exact write-back
+
+	Backticks []string `json:"-"`
 }
 
 // HasHours reports whether an hour figure was found at all. Callers must check
