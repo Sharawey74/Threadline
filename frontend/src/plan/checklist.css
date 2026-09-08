@@ -1,0 +1,99 @@
+.cl {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.cl-item:last-child {
+  border-bottom: none;
+}
+
+.cl-label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.cl-label:hover {
+  background: var(--bg-raised);
+}
+
+.cl-label input {
+  /* The box is a click target for a write to a real file. Give it room. */
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.cl-label input:disabled {
+  cursor: progress;
+}
+
+.cl-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * A completed item is dimmed but never struck through. These lines are read
+ * back weeks later to remember what was done; a strike-through makes the text
+ * harder to read for no information gained.
+ */
+.cl-text-done {
+  color: var(--fg-muted);
+}
+
+.cl-hours {
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+/* Not a figure the file stated. Reads as absence, not as zero. */
+.cl-hours-unstated {
+  color: var(--fg-faint);
+  font-style: italic;
+}
+
+/* A bare figure the author never marked up. Visibly provisional. */
+.cl-hours-low {
+  color: var(--warn);
+  cursor: help;
+}
+
+.cl-error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3) var(--space-3) 34px;
+  color: var(--drift);
+  font-size: var(--step-0);
+}
+
+.cl-empty {
+  margin: 0;
+  padding: var(--space-4) var(--space-3);
+  color: var(--fg-faint);
+  font-style: italic;
+}
+
+/* Visually hidden, still announced. */
+.cl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
