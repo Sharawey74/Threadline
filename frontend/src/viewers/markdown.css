@@ -161,3 +161,69 @@
 .md-rendered input[type='checkbox'] {
   margin-right: var(--space-2);
 }
+
+/* ── Editing ───────────────────────────────────────────────────────── */
+
+.md-panes-preview,
+.md-panes-edit {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.md-save {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.md-dirty {
+  font-size: var(--step-0);
+  color: var(--warn);
+}
+
+.md-editor {
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--fg);
+  background: var(--bg-inset);
+  border: none;
+  resize: none;
+  /* Tabs and trailing spaces are meaningful in markdown. Never reflow them. */
+  white-space: pre;
+  overflow: auto;
+}
+
+.md-editor:focus {
+  outline: none;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.md-panes-split .md-editor {
+  border-left: 1px solid var(--border);
+}
+
+.md-readonly {
+  min-width: 0;
+  overflow: auto;
+}
+
+.md-readonly-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.md-error {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--step-0);
+  color: var(--drift);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
