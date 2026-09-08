@@ -22,7 +22,18 @@ import (
 
 	"github.com/Sharawey74/Threadline/core/plan"
 	"github.com/Sharawey74/Threadline/core/store"
+	"github.com/Sharawey74/Threadline/core/watch"
 	"github.com/Sharawey74/Threadline/core/workspace"
+	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
+)
+
+// The three events Go pushes to the frontend. Names are shared with ipc/types.ts;
+// a typo here is a listener that never fires, which is why they are constants
+// rather than literals scattered through the file.
+const (
+	EventPlanChanged    = "plan:changed"
+	EventSessionTick    = "session:tick"
+	EventReconcileDrift = "reconcile:drift"
 )
 
 // App is the object Wails binds to the frontend.
@@ -34,6 +45,10 @@ type App struct {
 	// to call anything at any time.
 	svc   *workspace.Service
 	store *store.Store
+
+	watcher    *watch.Watcher
+	stopWatch  context.CancelFunc
+	lastChecks []plan.Check
 }
 
 // NewApp creates the bound application object.
@@ -50,6 +65,9 @@ func (a *App) Startup(ctx context.Context) {
 // leaves a -wal file beside the database that the next start has to recover
 // from — survivable, but recovery is not a thing to rely on routinely.
 func (a *App) Shutdown(_ context.Context) {
+	if a.stopWatch != nil {
+		a.stopWatch()
+	}
 	if a.store != nil {
 		_ = a.store.Close()
 	}
@@ -84,7 +102,65 @@ func (a *App) SetCareerRoot(path string) error {
 	}
 	a.store = st
 	a.svc = workspace.NewService(root, st, filepath.Join(dataDir, plan.SnapshotDir))
+
+	a.startWatching(root.PlanFile())
 	return nil
+}
+
+// startWatching reports external edits to the plan file as plan:changed.
+//
+// Switching career roots stops the previous watch first. Leaving it running
+// would report the old folder's edits against the new folder's data.
+func (a *App) startWatching(planPath string) {
+	if a.stopWatch != nil {
+		a.stopWatch()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	a.stopWatch = cancel
+
+	a.watcher = watch.New(planPath, func() {
+		a.emit(EventPlanChanged)
+		a.checkDrift()
+	})
+	go func() { _ = a.watcher.Run(ctx) }()
+}
+
+// checkDrift emits reconcile:drift when a check that was passing starts
+// failing.
+//
+// Only on the transition. Emitting on every scan while a check stays red would
+// train the user to ignore the event, and drift is meant to be information
+// worth reading - either the plan changed or the parser broke.
+func (a *App) checkDrift() {
+	checks, err := a.svc.Reconciliation()
+	if err != nil {
+		return
+	}
+
+	previous := map[string]bool{}
+	for _, c := range a.lastChecks {
+		previous[c.Label] = c.Passed
+	}
+
+	for _, c := range checks {
+		if was, seen := previous[c.Label]; seen && was && !c.Passed {
+			a.emit(EventReconcileDrift)
+			break
+		}
+	}
+	a.lastChecks = checks
+}
+
+// emit pushes an event to the frontend, if a window is listening.
+//
+// Before Startup there is no context and nothing to emit to. That happens in
+// tests and during a failed launch, and is not worth an error.
+func (a *App) emit(name string) {
+	if a.ctx == nil {
+		return
+	}
+	wailsruntime.EventsEmit(a.ctx, name)
 }
 
 // TickItem sets a checkbox in the plan file.
@@ -92,7 +168,15 @@ func (a *App) TickItem(anchor string, checked bool) error {
 	if err := a.ready(); err != nil {
 		return err
 	}
-	return a.svc.Tick(anchor, checked)
+	if err := a.svc.Tick(anchor, checked); err != nil {
+		return err
+	}
+	// Record the app's own write so the watcher does not report it back as an
+	// external edit. Best-effort: the worst case is one redundant re-fetch.
+	if a.watcher != nil {
+		a.watcher.MarkWritten()
+	}
+	return nil
 }
 
 // WriteArtifact saves an edited markdown file. Never the plan file (C3).
