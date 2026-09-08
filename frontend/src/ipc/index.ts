@@ -45,6 +45,14 @@ export interface IPC {
 
   // ── Commands ───────────────────────────────────────────────────────
   tickItem(anchor: string, checked: boolean): Promise<void>;
+  /**
+   * Saves an edited markdown file.
+   *
+   * Never the plan file. That one is modified only by the byte-exact tick path
+   * (C3), because a full-file rewrite cannot promise that nothing else moved.
+   * The bridge rejects a plan-file id rather than trusting the caller.
+   */
+  writeArtifact(artifactId: number, content: string): Promise<void>;
   savePosition(artifactId: number, page: number): Promise<void>;
   startSession(scopeKind: string, scopeRef: string): Promise<SessionId>;
   endSession(id: SessionId, note: string, reason: EndReason): Promise<void>;
@@ -71,6 +79,7 @@ export const CONTRACT = {
   ],
   commands: [
     'tickItem',
+    'writeArtifact',
     'savePosition',
     'startSession',
     'endSession',

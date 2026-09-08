@@ -66,6 +66,14 @@ export interface Artifact {
   path: string;
   title: string;
   ext: string;
+  /**
+   * True for the plan file.
+   *
+   * The UI uses it to withhold the editor: the plan file changes only through
+   * a checkbox tick on the byte-exact path (C3). The bridge enforces the same
+   * rule rather than trusting this flag.
+   */
+  isPlanFile: boolean;
 }
 
 /** One reconciliation result: a claim the plan makes, against what it contains. */
