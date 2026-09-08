@@ -53,6 +53,13 @@
   overflow: auto;
   display: flex;
   justify-content: center;
+  /*
+   * Without this the canvas is a stretched flex item: it takes the box's full
+   * height and its width follows the aspect ratio, so the page was fitted to
+   * the window's height and left most of the width empty. On a short window
+   * that rendered a 102pp study PDF at thumbnail size.
+   */
+  align-items: flex-start;
   padding: var(--space-4);
   background: var(--bg-inset);
 }
@@ -61,8 +68,9 @@
   /* A white page on a dark ground: the PDF's own background, not the app's. */
   background: #fff;
   box-shadow: 0 1px 8px rgb(0 0 0 / 35%);
+  /* The canvas is sized in script, in CSS pixels, from the measured width.
+     max-width is the guard for the frame before that measurement lands. */
   max-width: 100%;
-  height: auto;
 }
 
 .pdf-state {
