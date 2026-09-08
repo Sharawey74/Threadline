@@ -1,0 +1,54 @@
+.vt {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.vt-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.vt-btn:last-child {
+  border-right: 0;
+}
+
+.vt-btn:hover:not(:disabled) {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
+.vt-btn-on {
+  color: var(--fg);
+  background: var(--accent-quiet);
+}
+
+.vt-btn:disabled {
+  /* Withheld, not broken. It keeps enough contrast to be read - the label is
+     the explanation's anchor - and loses the pointer so it does not invite a
+     click that will not happen. */
+  color: var(--fg-faint);
+  cursor: not-allowed;
+}
+
+/* The outline sits inside: an offset ring on a segmented control overlaps its
+   neighbours and reads as though two segments are focused. */
+.vt-btn:focus-visible {
+  outline-offset: -2px;
+}
+
+.vt-icon {
+  width: 14px;
+  height: 14px;
+}

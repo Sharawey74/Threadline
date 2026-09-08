@@ -29,6 +29,15 @@ export interface MarkdownViewerProps {
   initialMode?: Mode;
   /** Why editing is unavailable, shown in place of the editor. */
   readOnlyReason?: string;
+  /**
+   * Drives the mode from outside, and hides the viewer's own switch.
+   *
+   * The design canvas puts Edit/Split/Preview in the document header, beside
+   * the title, rather than inside the document. Left uncontrolled the viewer
+   * keeps its own bar, which is what its tests exercise and what any caller
+   * without a header still gets.
+   */
+  mode?: Mode;
 }
 
 export function MarkdownViewer({
@@ -38,10 +47,12 @@ export function MarkdownViewer({
   onSave,
   initialMode = 'preview',
   readOnlyReason,
+  mode: controlledMode,
 }: MarkdownViewerProps) {
   const editable = !readOnly && onSave !== undefined;
 
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [ownMode, setMode] = useState<Mode>(initialMode);
+  const mode = controlledMode ?? ownMode;
   const [draft, setDraft] = useState(source);
   const [activeSource, setActiveSource] = useState(source);
   const [saving, setSaving] = useState(false);
@@ -88,20 +99,21 @@ export function MarkdownViewer({
 
   return (
     <div className="md">
-      <div className="md-bar" role="group" aria-label="View mode">
-        {modes.map((m) => (
-          <button
-            key={m}
-            type="button"
-            className={mode === m ? 'md-mode is-active' : 'md-mode'}
-            aria-pressed={mode === m}
-            onClick={() => {
-              setMode(m);
-            }}
-          >
-            {label(m, editable)}
-          </button>
-        ))}
+      <div className="md-bar">
+        {controlledMode === undefined &&
+          modes.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={mode === m ? 'md-mode is-active' : 'md-mode'}
+              aria-pressed={mode === m}
+              onClick={() => {
+                setMode(m);
+              }}
+            >
+              {label(m, editable)}
+            </button>
+          ))}
 
         {editable && (
           <div className="md-save">
