@@ -218,3 +218,89 @@ func encode(ext string, raw []byte) string {
 	}
 	return string(raw)
 }
+
+// Position is where the user stopped in a document.
+type Position = store.Position
+
+// Budget is hours allocated against hours actually measured.
+type Budget struct {
+	AllocatedHours float64 `json:"allocatedHours"`
+	// Nil when nothing was ever recorded. A period the app did not run is not
+	// a period of no work, and rendering 0h for it would be the invented
+	// number C5 forbids.
+	SpentHours *float64       `json:"spentHours"`
+	Periods    []BudgetPeriod `json:"periods"`
+}
+
+// BudgetPeriod is one schedule section's allocation.
+type BudgetPeriod struct {
+	Section        string   `json:"section"`
+	AllocatedHours float64  `json:"allocatedHours"`
+	SpentHours     *float64 `json:"spentHours"`
+	Measured       bool     `json:"measured"`
+}
+
+// SavePosition records where the user stopped.
+func (s *Service) SavePosition(artifactID int64, page int) error {
+	if _, _, err := s.locate(artifactID); err != nil {
+		return err
+	}
+	return s.store.SavePosition(artifactID, page, s.now())
+}
+
+// Position returns where the user stopped, or an empty position.
+func (s *Service) Position(artifactID int64) (Position, error) {
+	return s.store.Position(artifactID)
+}
+
+// StartSession opens a session. The lifecycle proper is I5.
+func (s *Service) StartSession(scopeKind, scopeRef string) (int64, error) {
+	return s.store.StartSession(scopeKind, scopeRef, s.now())
+}
+
+// EndSession closes a session. The lifecycle proper is I5.
+func (s *Service) EndSession(id int64, note, reason string) error {
+	return s.store.EndSession(id, note, reason, s.now())
+}
+
+// BudgetStatus reports the plan's allocation against what was measured.
+//
+// Allocation comes from the plan file's schedule sections — the only role that
+// counts toward the budget (Schema §2). Measurement comes from recorded
+// sessions, and stays nil until something has actually been recorded: every
+// period is reported as unmeasured rather than as zero.
+func (s *Service) BudgetStatus() (Budget, error) {
+	p, err := s.Plan()
+	if err != nil {
+		return Budget{}, err
+	}
+
+	secs, measured, err := s.store.MeasuredSeconds()
+	if err != nil {
+		return Budget{}, err
+	}
+
+	b := Budget{}
+	if measured {
+		hours := float64(secs) / 3600
+		b.SpentHours = &hours
+	}
+
+	for _, sec := range p.SectionsWithRole(plan.SecSchedule) {
+		if !sec.HasBudget() {
+			continue
+		}
+		b.AllocatedHours += sec.Budget
+		b.Periods = append(b.Periods, BudgetPeriod{
+			Section:        sec.Title,
+			AllocatedHours: sec.Budget,
+			// Per-period attribution needs sessions to carry a scope, which
+			// is I5. Until then every period is honestly unmeasured rather
+			// than credited with time it cannot account for.
+			SpentHours: nil,
+			Measured:   false,
+		})
+	}
+
+	return b, nil
+}
