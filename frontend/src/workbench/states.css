@@ -46,3 +46,52 @@
 .st-action:hover {
   border-color: var(--accent);
 }
+
+/* ── Loading ────────────────────────────────────────────────── */
+
+.st-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.st-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.st-skel {
+  height: 12px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  /* A slow pulse, not a sweep. A shimmer travelling across five bars draws the
+     eye to the loading state, which is the one thing on screen that does not
+     matter. */
+  animation: st-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes st-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* Nothing pulses for someone who asked for less motion. The reserved space is
+   the part that matters and it stays. */
+@media (prefers-reduced-motion: reduce) {
+  .st-skel {
+    animation: none;
+  }
+}
