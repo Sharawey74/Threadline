@@ -46,7 +46,13 @@
   --space-5: 24px;
 
   --radius: 6px;
-  --rail-width: 260px;
+  /*
+   * A proportion with both ends pinned, not a fixed size. At 260px flat the
+   * rail took roughly 40% of a narrow window and the viewer — the point of the
+   * screen — got less than the chrome around it. The floor keeps a long
+   * filename readable; the ceiling stops the rail sprawling on a wide monitor.
+   */
+  --rail-width: clamp(220px, 22vw, 320px);
   --header-height: 44px;
 }
 
