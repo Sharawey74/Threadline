@@ -1,0 +1,78 @@
+.se {
+  /* Capped and left-aligned rather than centred in a 1920px window: a settings
+     row whose label and control are half a screen apart is harder to read than
+     one that keeps a measure. */
+  max-width: 68ch;
+  padding: var(--space-7) var(--space-7) var(--space-7);
+  overflow-y: auto;
+  height: 100%;
+}
+
+.se-title {
+  margin: 0 0 var(--space-6);
+  font-size: var(--step-5);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.se-block {
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.se-block:last-child {
+  border-bottom: 0;
+}
+
+.se-head {
+  margin: 0 0 var(--space-2);
+  font-size: var(--step-2);
+  font-weight: 600;
+}
+
+.se-note {
+  margin: 0 0 var(--space-3);
+  max-width: var(--measure);
+  font-size: var(--step-1);
+  line-height: 1.6;
+  color: var(--fg-muted);
+}
+
+.se-path {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  color: var(--fg);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+
+.se-btn {
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--step-1);
+  color: var(--fg);
+  background: var(--bg-hover);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.se-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.se-btn:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+
+.se-error {
+  margin: var(--space-3) 0 0;
+  font-size: var(--step-0);
+  color: var(--drift);
+}
