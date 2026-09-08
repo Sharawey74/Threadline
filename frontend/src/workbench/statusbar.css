@@ -1,0 +1,63 @@
+.sb-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+.sb-spacer {
+  flex: 1 1 auto;
+}
+
+.sb-mono {
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+}
+
+.sb-quiet {
+  color: var(--fg-faint);
+}
+
+.sb-ok,
+.sb-drift {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: inherit;
+  font-size: var(--step-micro);
+}
+
+.sb-ok {
+  color: var(--fg-muted);
+}
+
+.sb-drift {
+  padding: 2px var(--space-2);
+  color: var(--drift);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.sb-drift:hover {
+  background: var(--bg-hover);
+}
+
+.sb-drift-detail {
+  /* The failing check's own label, dimmed. It is the difference between "go
+     and look" and "you already know". */
+  color: var(--fg-muted);
+  max-width: 46ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sb-save {
+  color: var(--fg-muted);
+}
+
+.sb-icon {
+  width: 13px;
+  height: 13px;
+}
