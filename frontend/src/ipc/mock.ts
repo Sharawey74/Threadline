@@ -97,14 +97,23 @@ const topics: Topic[] = [
 
 const material: Record<string, Artifact[]> = {
   '06 - System Design': [
-    { id: 1, path: '06 - System Design/Fundamentals v3.pdf', title: 'Fundamentals v3', ext: '.pdf' },
-    { id: 2, path: '06 - System Design/Interview Q&A.pdf', title: 'Interview Q&A', ext: '.pdf' },
+    { id: 1, path: '06 - System Design/Fundamentals v3.pdf', title: 'Fundamentals v3', ext: '.pdf', isPlanFile: false },
+    { id: 2, path: '06 - System Design/notes.md', title: 'My notes', ext: '.md', isPlanFile: false },
+    // The plan file: editable nowhere, tickable everywhere.
+    { id: 9, path: 'TASKS.md', title: 'TASKS.md', ext: '.md', isPlanFile: true },
   ],
   '02 - Databases & Storage': [
-    { id: 3, path: '02 - Databases & Storage/ACID.pdf', title: 'ACID', ext: '.pdf' },
+    { id: 3, path: '02 - Databases & Storage/ACID.pdf', title: 'ACID', ext: '.pdf', isPlanFile: false },
   ],
   '09 - AI': [],
 };
+
+/** True when the id belongs to the plan file. */
+function isPlanFile(id: number): boolean {
+  return Object.values(material)
+    .flat()
+    .some((a) => a.id === id && a.isPlanFile);
+}
 
 /** Deep-copies fixture data so a caller mutating a result cannot corrupt the mock. */
 function clone<T>(value: T): T {
@@ -119,6 +128,7 @@ function delay<T>(value: T, ms = 40): Promise<T> {
 export class MockIPC implements IPC {
   private items = clone(items);
   private positions = new Map<number, Position>();
+  private contents = new Map<number, string>();
   private handlers = new Map<EventName, Set<() => void>>();
   private nextSession = 1;
 
@@ -172,6 +182,10 @@ export class MockIPC implements IPC {
   }
 
   readArtifact(artifactId: number): Promise<Content> {
+    const saved = this.contents.get(artifactId);
+    if (saved !== undefined) {
+      return delay<Content>({ artifactId, kind: 'markdown', body: saved });
+    }
     return delay<Content>({
       artifactId,
       kind: 'markdown',
@@ -191,6 +205,18 @@ export class MockIPC implements IPC {
     }
     item.checked = checked;
     this.emit('plan:changed');
+    return delay(undefined);
+  }
+
+  writeArtifact(artifactId: number, content: string): Promise<void> {
+    if (isPlanFile(artifactId)) {
+      // The real bridge refuses this too. A UI bug must not be the only thing
+      // standing between a full-file rewrite and the plan file (C3).
+      return Promise.reject(
+        new Error('the plan file is modified only by ticking a checkbox'),
+      );
+    }
+    this.contents.set(artifactId, content);
     return delay(undefined);
   }
 
