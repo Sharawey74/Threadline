@@ -97,3 +97,49 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ── Sections ───────────────────────────────────────────────── */
+
+.cl-section-head {
+  /* Pinned, so the section an item belongs to is never scrolled off above it.
+     On a 55-item plan that is the difference between "Notes track - 15h" being
+     September's or October's. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  font-size: var(--step-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.cl-section-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-section-count {
+  /* Ticked over total for this section, counted from the boxes on screen -
+     including the optimistic ones, so it moves with the tick rather than a
+     round-trip later. Never a percentage: a proportion of a section whose
+     items differ in size would be a number nothing measured. */
+  margin-left: auto;
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.cl-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

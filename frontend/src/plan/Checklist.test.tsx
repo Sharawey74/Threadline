@@ -110,4 +110,44 @@ describe('empty state', () => {
     // An empty region with no explanation reads as a broken app.
     expect(screen.getByText(/no checklist items/i)).toBeTruthy();
   });
+
+  describe('sections', () => {
+    const plan = [
+      item({ anchor: 's1', section: 'September', text: 'Notes track - 15h' }),
+      item({ anchor: 's2', section: 'September', text: 'ISTQB study', checked: true }),
+      item({ anchor: 'o1', section: 'October', text: 'Notes track - 25h' }),
+    ];
+
+    // Flat, the real plan is 55 rows of similar-looking text with nothing to
+    // say that "Notes track" belongs to September rather than October.
+    it("groups items under the plan's own section headings", () => {
+      render(<Checklist items={plan} onTick={vi.fn()} />);
+
+      const names = screen
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.querySelector('.cl-section-name')?.textContent);
+
+      expect(names).toEqual(['September', 'October']);
+    });
+
+    it('keeps the sections in the order the file states them', () => {
+      // The plan is a document read top to bottom. Sorting its sections here
+      // would make the checklist disagree with the file it writes to.
+      render(<Checklist items={[...plan].reverse()} onTick={vi.fn()} />);
+
+      const names = screen
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.querySelector('.cl-section-name')?.textContent);
+
+      expect(names).toEqual(['October', 'September']);
+    });
+
+    it('counts ticked over total for each section', () => {
+      render(<Checklist items={plan} onTick={vi.fn()} />);
+
+      const heads = screen.getAllByRole('heading', { level: 3 });
+      expect(heads[0]?.querySelector('.cl-section-count')?.textContent).toBe('1/2');
+      expect(heads[1]?.querySelector('.cl-section-count')?.textContent).toBe('0/1');
+    });
+  });
 });
