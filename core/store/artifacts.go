@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 )
@@ -28,18 +28,23 @@ type Artifact struct {
 // raw path would create two rows for one document and split its history.
 func (s *Store) UpsertArtifact(relPath string, now time.Time) (int64, error) {
 	key := normalisePath(relPath)
-	title := strings.TrimSuffix(filepath.Base(key), filepath.Ext(key))
-	ext := strings.ToLower(filepath.Ext(key))
+	real := slashPath(relPath)
+	title := strings.TrimSuffix(path.Base(real), path.Ext(real))
+	ext := strings.ToLower(path.Ext(real))
 
+	// real_path is refreshed on conflict as well as on insert. A file renamed
+	// only in its casing keeps its id and its history, and corrects its
+	// address on the next scan.
 	_, err := s.db.Exec(`
-		INSERT INTO artifact(kind, path, title, ext, first_seen, last_seen, status)
-		VALUES('file', ?, ?, ?, ?, ?, 'ok')
+		INSERT INTO artifact(kind, path, real_path, title, ext, first_seen, last_seen, status)
+		VALUES('file', ?, ?, ?, ?, ?, ?, 'ok')
 		ON CONFLICT(path) DO UPDATE SET
+			real_path = excluded.real_path,
 			title     = excluded.title,
 			ext       = excluded.ext,
 			last_seen = excluded.last_seen,
 			status    = 'ok'`,
-		key, title, ext, now.Unix(), now.Unix())
+		key, real, title, ext, now.Unix(), now.Unix())
 	if err != nil {
 		return 0, fmt.Errorf("upsert artifact %s: %w", relPath, err)
 	}
@@ -59,7 +64,7 @@ func (s *Store) UpsertArtifact(relPath string, now time.Time) (int64, error) {
 func (s *Store) ArtifactByID(id int64) (Artifact, error) {
 	var a Artifact
 	err := s.db.QueryRow(
-		`SELECT id, path, title, ext FROM artifact WHERE id = ?`, id,
+		`SELECT id, real_path, title, ext FROM artifact WHERE id = ?`, id,
 	).Scan(&a.ID, &a.Path, &a.Title, &a.Ext)
 	if err == sql.ErrNoRows {
 		return Artifact{}, fmt.Errorf("no artifact with id %d", id)
@@ -71,7 +76,7 @@ func (s *Store) ArtifactByID(id int64) (Artifact, error) {
 func (s *Store) ArtifactsUnder(prefix string) ([]Artifact, error) {
 	key := normalisePath(prefix)
 	rows, err := s.db.Query(
-		`SELECT id, path, title, ext FROM artifact
+		`SELECT id, real_path, title, ext FROM artifact
 		 WHERE path = ? OR path LIKE ? ORDER BY path`,
 		key, key+"/%")
 	if err != nil {
@@ -101,7 +106,20 @@ func (s *Store) MarkArtifactMissing(id int64, now time.Time) error {
 	return err
 }
 
+// slashPath rewrites a path to slash separators, whatever platform it runs on.
+//
+// filepath.ToSlash is deliberately not used: it is a no-op on Linux, where a
+// backslash is an ordinary filename character. These paths are always Windows
+// paths and the database they land in is read by CI on Linux, so the rewrite
+// has to be explicit rather than inherited from the host.
+func slashPath(p string) string {
+	return path.Clean(strings.ReplaceAll(p, `\`, "/"))
+}
+
 // normalisePath makes a path comparable: slash-separated and lowercased.
+//
+// The result is an identity key, never an address. Opening a file by it only
+// works where the filesystem is case-insensitive.
 func normalisePath(p string) string {
-	return strings.ToLower(filepath.ToSlash(filepath.Clean(p)))
+	return strings.ToLower(slashPath(p))
 }

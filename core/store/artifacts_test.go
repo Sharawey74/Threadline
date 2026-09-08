@@ -109,3 +109,28 @@ func TestMissingArtifactIsFlaggedNotDeleted(t *testing.T) {
 		t.Errorf("a missing artifact disappeared from the store: %v", err)
 	}
 }
+
+// The stored path is what the service opens files by, so it has to be the
+// real one. Lowercasing it for lookup and then handing the lowercased form
+// back is invisible on Windows, whose filesystem is case-insensitive, and
+// fails on every case-sensitive one — which is what CI runs on.
+func TestArtifactKeepsItsRealCase(t *testing.T) {
+	s := memStore(t)
+
+	const real = "Study guided & notes/06 - System Design/Notes.pdf"
+	id, err := s.UpsertArtifact(real, t0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := s.ArtifactByID(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != real {
+		t.Errorf("stored path lost its case:\n got  %q\n want %q", got.Path, real)
+	}
+	if got.Title != "Notes" {
+		t.Errorf("title = %q, want %q", got.Title, "Notes")
+	}
+}
