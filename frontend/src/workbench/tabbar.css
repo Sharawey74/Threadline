@@ -1,0 +1,88 @@
+.tb {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  min-width: 0;
+}
+
+.tb-empty {
+  /* Holds the row's height so the chrome below does not shift up on the frame
+     before the first document opens. */
+  width: 100%;
+}
+
+.tb-tab {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  /* A tab shrinks to a readable minimum and no further. Past this the title is
+     gone and only the close button is left, which is a row of X's. */
+  max-width: 220px;
+  border-right: 1px solid var(--border);
+  background: transparent;
+}
+
+.tb-tab:hover {
+  background: var(--bg-hover);
+}
+
+.tb-tab-on {
+  background: var(--bg);
+  /* The current tab is marked by a bar in the accent, not by colour alone -
+     colour alone is unreadable to anyone who cannot separate these two greys. */
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.tb-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tb-tab-on .tb-label {
+  color: var(--fg);
+}
+
+.tb-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.tb-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  /* 24px is under the 44px touch target, which is the right call here: this is
+     a pointer-and-keyboard desktop app, and a 44px close button in a 40px bar
+     would be taller than the bar holding it. Middle-click and the palette both
+     close a tab without aiming at this. */
+  width: 24px;
+  height: 24px;
+  margin-right: var(--space-2);
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tb-close:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
