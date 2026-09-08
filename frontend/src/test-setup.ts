@@ -79,3 +79,15 @@ class NullResizeObserver implements ResizeObserver {
 }
 
 globalThis.ResizeObserver = NullResizeObserver;
+
+/**
+ * scrollIntoView, which jsdom does not implement.
+ *
+ * The command palette keeps the arrow-key selection in view as it moves, so
+ * every interaction with it calls this. There is no layout under jsdom for it
+ * to affect, and the behaviour it stands in for - is the selected row visible -
+ * is not something these tests can observe anyway.
+ */
+Element.prototype.scrollIntoView = function scrollIntoView() {
+  /* no layout under jsdom */
+};
