@@ -37,14 +37,17 @@ var (
 
 // Section is one "## N. Title" block.
 type Section struct {
-	Number   int
-	Title    string
-	RawTitle string // the heading as written, for parse-integrity reporting
-	LineNo   int
-	Role     SectionRole
+	Number int         `json:"number"`
+	Title  string      `json:"title"`
+	LineNo int         `json:"lineNo"`
+	Role   SectionRole `json:"role"`
 
-	Budget     float64
-	BudgetConf Confidence
+	Budget     float64    `json:"budget"`
+	BudgetConf Confidence `json:"budgetConf"`
+
+	// The heading as written, for parse-integrity reporting. Internal: the UI
+	// shows Title.
+	RawTitle string `json:"-"`
 }
 
 // HasBudget reports whether the heading declared an hour budget. A section that

@@ -9,9 +9,9 @@ import (
 // Plan is the whole parsed document: the derived model for one plan file.
 // Nothing here is persisted - it is rebuilt whenever the file's hash changes.
 type Plan struct {
-	Sections []Section
-	Items    []Item
-	Budget   map[string]float64 // the §3 table: track -> declared hours
+	Sections []Section          `json:"sections"`
+	Items    []Item             `json:"items"`
+	Budget   map[string]float64 `json:"budget"` // the §3 table: track -> hours
 }
 
 // budgetRowRe matches a two-column table cell holding only a number, with or

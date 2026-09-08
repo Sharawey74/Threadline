@@ -53,3 +53,29 @@ beforeEach(() => {
     writable: true,
   });
 });
+
+/**
+ * A ResizeObserver that observes nothing.
+ *
+ * jsdom does not implement one, and the PDF viewer uses it to fit a page to
+ * the width it has. Under jsdom every element measures zero anyway, so a real
+ * implementation would add no coverage — what the tests need is for the
+ * constructor to exist so the component mounts. The viewer falls back to the
+ * page's intrinsic width when it has measured nothing, which is the path these
+ * tests exercise.
+ */
+class NullResizeObserver implements ResizeObserver {
+  observe(): void {
+    /* nothing to measure under jsdom */
+  }
+
+  unobserve(): void {
+    /* nothing to measure under jsdom */
+  }
+
+  disconnect(): void {
+    /* nothing to measure under jsdom */
+  }
+}
+
+globalThis.ResizeObserver = NullResizeObserver;

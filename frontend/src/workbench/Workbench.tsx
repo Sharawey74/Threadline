@@ -6,6 +6,7 @@ import type { Artifact, Item, Plan } from '../ipc';
 import { Checklist } from '../plan/Checklist';
 import { MarkdownViewer } from '../viewers/MarkdownViewer';
 import { PdfViewer } from '../viewers/PdfViewer';
+import { FirstRun } from './FirstRun';
 import { Layout } from './Layout';
 import { AsyncView, Empty } from './States';
 import { useShortcuts } from './useShortcuts';
@@ -21,6 +22,13 @@ import './workbench.css';
  * screen run against the mock with no Go present.
  */
 export function Workbench() {
+  // The workspace is asked about before anything else renders. Letting each
+  // pane discover a missing career folder on its own produced the same message
+  // three times, with two identical buttons, for one cause.
+  const [reloads, setReloads] = useState(0);
+  const loadWorkspace = useCallback(() => ipc().getWorkspace(), []);
+  const ws = useAsync(loadWorkspace);
+
   const [topic, setTopic] = useState<string | null>(null);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
 
@@ -62,8 +70,22 @@ export function Workbench() {
     [],
   );
 
+  // First run, or a remembered folder that has gone. Either way the workbench
+  // has nothing to show, so it does not render at all.
+  if (ws.status === 'ready' && ws.data.careerRoot === '') {
+    return (
+      <FirstRun
+        problem={ws.data.problem}
+        onChosen={() => {
+          setReloads((n) => n + 1);
+        }}
+      />
+    );
+  }
+
   return (
     <Layout
+      key={reloads}
       header={
         <Header
           topics={topics.status === 'ready' ? topics.data.map((t) => t.slug) : []}

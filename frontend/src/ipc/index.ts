@@ -21,6 +21,7 @@ import type {
   Position,
   SessionId,
   Topic,
+  Workspace,
 } from './types';
 
 export type * from './types';
@@ -41,6 +42,8 @@ export interface IPC {
   getReconciliation(): Promise<Check[]>;
   getBudgetStatus(): Promise<Budget>;
   getPosition(artifactId: number): Promise<Position>;
+  /** Never rejects for the ordinary reason of having no folder yet. */
+  getWorkspace(): Promise<Workspace>;
   readArtifact(artifactId: number): Promise<Content>;
 
   // ── Commands ───────────────────────────────────────────────────────
@@ -57,6 +60,8 @@ export interface IPC {
   startSession(scopeKind: string, scopeRef: string): Promise<SessionId>;
   endSession(id: SessionId, note: string, reason: EndReason): Promise<void>;
   setCareerRoot(path: string): Promise<void>;
+  /** Opens the native folder picker. Resolves to "" when cancelled. */
+  chooseCareerRoot(): Promise<string>;
 
   // ── Events ─────────────────────────────────────────────────────────
   /** Subscribe to a Go-pushed event. Returns an unsubscribe function. */
@@ -76,6 +81,7 @@ export const CONTRACT = {
     'getBudgetStatus',
     'getPosition',
     'readArtifact',
+    'getWorkspace',
   ],
   commands: [
     'tickItem',
@@ -84,6 +90,7 @@ export const CONTRACT = {
     'startSession',
     'endSession',
     'setCareerRoot',
+    'chooseCareerRoot',
   ],
   events: ['plan:changed', 'session:tick', 'reconcile:drift'],
 } as const;

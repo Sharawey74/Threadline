@@ -26,6 +26,9 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.Startup,
+		// Without this the store is never closed, so SQLite's write-ahead log
+		// is left for the next start to recover from.
+		OnShutdown: app.Shutdown,
 		Bind: []interface{}{
 			app,
 		},

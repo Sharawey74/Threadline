@@ -18,6 +18,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+/**
+ * A page is fitted to the width it is given, between these bounds.
+ *
+ * The floor stops a very narrow window rendering text too small to read — the
+ * page overflows and scrolls instead, which is recoverable. The ceiling stops
+ * a small-format document being magnified past the point where its own raster
+ * content turns soft.
+ */
+const MIN_PAGE_WIDTH = 320;
+const MAX_SCALE = 3;
+
 export interface PdfViewerProps {
   /** Base64 document bytes, delivered over IPC. The frontend never reads disk. */
   data: string;
@@ -36,6 +47,8 @@ type Load =
 
 export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  /** The scrolling box the page is fitted into. */
+  const holderRef = useRef<HTMLDivElement | null>(null);
   /**
    * The document lives in a ref, never in state.
    *
@@ -49,6 +62,14 @@ export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerP
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [page, setPage] = useState(initialPage ?? 1);
   const [activeData, setActiveData] = useState(data);
+  /**
+   * The width available to the page, measured rather than assumed.
+   *
+   * Zero until the observer has reported once, which is also the value under
+   * jsdom; the render treats that as "not measured" and falls back to the
+   * page's intrinsic width rather than rendering something of size zero.
+   */
+  const [width, setWidth] = useState(0);
 
   // Opening a different document resets during render rather than in an
   // effect, so the previous PDF's page is never painted under the new one's
@@ -92,6 +113,24 @@ export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerP
     };
   }, [data]);
 
+  // ── Measure the space a page has ───────────────────────────────────
+  useEffect(() => {
+    const holder = holderRef.current;
+    if (holder === null) return;
+
+    // contentRect is the content box, so the padding around the page is
+    // already excluded and the value is the width a page may actually use.
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry !== undefined) setWidth(entry.contentRect.width);
+    });
+    observer.observe(holder);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   // ── Render the current page ────────────────────────────────────────
   useEffect(() => {
     const doc = docRef.current;
@@ -104,12 +143,34 @@ export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerP
     void doc.getPage(page).then((p) => {
       if (!live) return;
 
-      const viewport = p.getViewport({ scale: 1.4 });
       const ctx = canvas.getContext('2d');
       if (ctx === null) return;
 
+      /*
+       * Fit the page to its width instead of a fixed magnification.
+       *
+       * A hardcoded scale renders every document at the same magnification
+       * whatever its intrinsic page size, so a study PDF authored small
+       * arrived unreadable while a large one overflowed. Reading is the whole
+       * product: the page should use the width it has.
+       */
+      const base = p.getViewport({ scale: 1 });
+      const available = width > 0 ? width : base.width;
+      const fit = Math.min(Math.max(available, MIN_PAGE_WIDTH) / base.width, MAX_SCALE);
+
+      /*
+       * The canvas is drawn in device pixels and displayed in CSS pixels.
+       * Windows runs this display at a scale factor and WebView2 passes it
+       * through, so drawing at CSS size on a 150% display renders the text
+       * soft — the one thing a reading tool cannot afford.
+       */
+      const ratio = window.devicePixelRatio || 1;
+      const viewport = p.getViewport({ scale: fit * ratio });
+
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+      canvas.style.width = `${String(Math.round(base.width * fit))}px`;
+      canvas.style.height = `${String(Math.round(base.height * fit))}px`;
 
       task = p.render({ canvas, canvasContext: ctx, viewport });
       task.promise.catch((err: unknown) => {
@@ -126,7 +187,7 @@ export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerP
       // over the new one.
       task?.cancel();
     };
-  }, [page, load]);
+  }, [page, load, width]);
 
   // ── Remember where the user stopped ────────────────────────────────
   useEffect(() => {
@@ -183,7 +244,7 @@ export function PdfViewer({ data, initialPage, onPageChange, title }: PdfViewerP
         </button>
       </div>
 
-      <div className="pdf-page">
+      <div className="pdf-page" ref={holderRef}>
         {/* The canvas stays mounted across page changes. Unmounting it would
             drop the scroll position on every turn. */}
         <canvas ref={canvasRef} aria-label={`${title}, page ${String(page)}`} />

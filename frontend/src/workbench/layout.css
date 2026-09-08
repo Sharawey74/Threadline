@@ -100,6 +100,13 @@
     overflow-x: auto;
     overflow-y: hidden;
     border-right: none;
+    /*
+     * The strip takes its height from its tallest region, which is the note
+     * box. Unbounded, that leaves a PDF page rendering at thumbnail size on a
+     * short window — the viewer is already the constrained dimension down
+     * here, so the rail must never take more than a third of it.
+     */
+    max-height: min(33vh, 200px);
     border-bottom: 1px solid var(--border);
   }
 

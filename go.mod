@@ -2,7 +2,11 @@ module github.com/Sharawey74/Threadline
 
 go 1.25.0
 
-require github.com/wailsapp/wails/v2 v2.15.0
+require (
+	github.com/fsnotify/fsnotify v1.10.1
+	github.com/wailsapp/wails/v2 v2.15.0
+	modernc.org/sqlite v1.58.0
+)
 
 require (
 	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
@@ -39,7 +43,6 @@ require (
 	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.58.0 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.15.0 => C:\Users\DELL\go\pkg\mod

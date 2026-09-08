@@ -9,12 +9,12 @@ import (
 // Check is one reconciliation result: a claim the plan makes about itself,
 // compared against what the plan actually contains.
 type Check struct {
-	Label  string
-	Got    float64
-	Want   float64
-	Unit   string // "h", "pp", or "" for counts
-	Passed bool
-	Detail string // populated on failure, so a red line explains itself
+	Label  string  `json:"label"`
+	Got    float64 `json:"got"`
+	Want   float64 `json:"want"`
+	Unit   string  `json:"unit"` // "h", "pp", or "" for counts
+	Passed bool    `json:"passed"`
+	Detail string  `json:"detail"` // on failure, so a red line explains itself
 }
 
 func (c Check) String() string {
@@ -43,8 +43,8 @@ func newCheck(label string, got, want float64, unit string) Check {
 // takes it as input rather than reading the filesystem itself, which keeps
 // these rules pure and testable without a career folder.
 type Topic struct {
-	Slug  string
-	Order int
+	Slug  string `json:"slug"`
+	Order int    `json:"order"`
 }
 
 // Reconcile generates the check set from roles and runs it.
