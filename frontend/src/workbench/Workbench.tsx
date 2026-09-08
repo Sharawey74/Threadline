@@ -1,25 +1,25 @@
-import { Moon, PanelLeft, PanelRight, Sun } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Moon, PanelLeft, PanelRight, Sun } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { useAsync } from "../hooks/useAsync";
-import { ipc } from "../ipc";
-import type { Artifact, Item, Plan } from "../ipc";
-import { Checklist } from "../plan/Checklist";
-import { MarkdownViewer } from "../viewers/MarkdownViewer";
-import { PdfViewer } from "../viewers/PdfViewer";
-import { Explorer } from "./Explorer";
-import { FirstRun } from "./FirstRun";
-import { Layout } from "./Layout";
-import { Palette } from "./Palette";
-import { AsyncView, Empty } from "./States";
-import { StatusBar } from "./StatusBar";
-import { TabBar } from "./TabBar";
-import type { ViewMode } from "./ViewToggle";
-import { ViewToggle } from "./ViewToggle";
-import { useShortcuts } from "./useShortcuts";
-import { useTabs } from "./useTabs";
-import { useTheme } from "./useTheme";
-import "./workbench.css";
+import { useAsync } from '../hooks/useAsync';
+import { ipc } from '../ipc';
+import type { Artifact, Item, Plan } from '../ipc';
+import { Checklist } from '../plan/Checklist';
+import { MarkdownViewer } from '../viewers/MarkdownViewer';
+import { PdfViewer } from '../viewers/PdfViewer';
+import { Explorer } from './Explorer';
+import { FirstRun } from './FirstRun';
+import { Layout } from './Layout';
+import { Palette } from './Palette';
+import { AsyncView, Empty } from './States';
+import { StatusBar } from './StatusBar';
+import { TabBar } from './TabBar';
+import type { ViewMode } from './ViewToggle';
+import { ViewToggle } from './ViewToggle';
+import { useShortcuts } from './useShortcuts';
+import { useTabs } from './useTabs';
+import { useTheme } from './useTheme';
+import './workbench.css';
 
 export function Workbench() {
   // The workspace is asked about before anything else renders. Letting each
@@ -66,13 +66,13 @@ export function Workbench() {
    * file and finding it in a different mode from the last one is a surprise;
    * the mode is how you are working, not a property of the file.
    */
-  const [viewMode, setViewMode] = useState<ViewMode>("preview");
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [palette, setPalette] = useState(false);
 
   // Flattened out of the rail's tree so the palette can reach a document
   // without the folder it lives in having to be expanded first.
   const openable = useMemo(
-    () => (tree.status === "ready" ? tree.data.flatMap((t) => t.files) : []),
+    () => (tree.status === 'ready' ? tree.data.flatMap((t) => t.files) : []),
     [tree],
   );
 
@@ -85,7 +85,7 @@ export function Workbench() {
       r: () => {
         setReading((on) => !on);
       },
-      "mod+k": () => {
+      'mod+k': () => {
         setPalette(true);
       },
     }),
@@ -103,7 +103,7 @@ export function Workbench() {
 
   // First run, or a remembered folder that has gone. Either way the workbench
   // has nothing to show, so it does not render at all.
-  if (ws.status === "ready" && ws.data.careerRoot === "") {
+  if (ws.status === 'ready' && ws.data.careerRoot === '') {
     return (
       <FirstRun
         problem={ws.data.problem}
@@ -125,47 +125,44 @@ export function Workbench() {
         onOpenFile={tabs.openTab}
         actions={[
           {
-            id: "reading",
-            label: reading ? "Show both panes" : "Reading mode",
-            hint: "R",
+            id: 'reading',
+            label: reading ? 'Show both panes' : 'Reading mode',
+            hint: 'R',
             run: () => {
               setReading((on) => !on);
             },
           },
           {
-            id: "theme",
-            label:
-              theme === "dark"
-                ? "Switch to light theme"
-                : "Switch to dark theme",
-            hint: "T",
+            id: 'theme',
+            label: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+            hint: 'T',
             run: toggleTheme,
           },
           {
-            id: "checklist",
-            label: "Go to the checklist",
-            hint: "Esc",
+            id: 'checklist',
+            label: 'Go to the checklist',
+            hint: 'Esc',
             run: tabs.blur,
           },
           {
-            id: "preview",
-            label: "View: Preview",
+            id: 'preview',
+            label: 'View: Preview',
             run: () => {
-              setViewMode("preview");
+              setViewMode('preview');
             },
           },
           {
-            id: "split",
-            label: "View: Split",
+            id: 'split',
+            label: 'View: Split',
             run: () => {
-              setViewMode("split");
+              setViewMode('split');
             },
           },
           {
-            id: "edit",
-            label: "View: Edit",
+            id: 'edit',
+            label: 'View: Edit',
             run: () => {
-              setViewMode("edit");
+              setViewMode('edit');
             },
           },
         ]}
@@ -177,7 +174,7 @@ export function Workbench() {
         planCollapsed={reading}
         title={
           <TitleBar
-            root={ws.status === "ready" ? ws.data.careerRoot : ""}
+            root={ws.status === 'ready' ? ws.data.careerRoot : ''}
             reading={reading}
             onToggleReading={() => {
               setReading((on) => !on);
@@ -194,13 +191,7 @@ export function Workbench() {
             onClose={tabs.closeTab}
           />
         }
-        document={
-          <DocumentHeader
-            artifact={active}
-            mode={viewMode}
-            onMode={setViewMode}
-          />
-        }
+        document={<DocumentHeader artifact={active} mode={viewMode} onMode={setViewMode} />}
         rail={
           <AsyncView
             state={tree}
@@ -248,7 +239,7 @@ export function Workbench() {
         }
         status={
           <StatusBar
-            checks={checks.status === "ready" ? checks.data : null}
+            checks={checks.status === 'ready' ? checks.data : null}
             position={active?.path}
           />
         }
@@ -288,11 +279,9 @@ function TitleBar({
         // The name says what the control does, not what it is. "Reading mode"
         // alone leaves a screen reader user to guess what pressing it changes.
         aria-label={
-          reading
-            ? "Show the rail and plan panes"
-            : "Reading mode: collapse both side panes"
+          reading ? 'Show the rail and plan panes' : 'Reading mode: collapse both side panes'
         }
-        title={reading ? "Show both panes (R)" : "Reading mode (R)"}
+        title={reading ? 'Show both panes (R)' : 'Reading mode (R)'}
         onClick={onToggleReading}
       >
         {reading ? (
@@ -305,13 +294,11 @@ function TitleBar({
       <button
         type="button"
         className="wb-icon-btn"
-        aria-label={
-          theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
-        }
+        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
         title="Toggle theme (T)"
         onClick={onToggleTheme}
       >
-        {theme === "dark" ? (
+        {theme === 'dark' ? (
           <Sun className="wb-icon" aria-hidden="true" />
         ) : (
           <Moon className="wb-icon" aria-hidden="true" />
@@ -322,7 +309,7 @@ function TitleBar({
 }
 
 const PLAN_READ_ONLY =
-  "The plan file changes only by ticking a checkbox, so that nothing else in it can move.";
+  'The plan file changes only by ticking a checkbox, so that nothing else in it can move.';
 
 function DocumentHeader({
   artifact,
@@ -344,7 +331,7 @@ function DocumentHeader({
       {/* The switch belongs to markdown. A PDF has no edit mode, and a control
           that appears everywhere and works sometimes is worse than one that
           appears where it applies. */}
-      {artifact.ext.toLowerCase() === ".md" && (
+      {artifact.ext.toLowerCase() === '.md' && (
         <ViewToggle
           mode={mode}
           onChange={onMode}
@@ -363,12 +350,9 @@ function DocumentHeader({
  * anything else would be a number the app made up about the user's own work.
  */
 function Progress({ plan }: { plan: Plan }) {
-  const curriculum = plan.items.filter((i) => i.role === "curriculum");
+  const curriculum = plan.items.filter((i) => i.role === 'curriculum');
   const done = curriculum.filter((i) => i.checked).length;
-  const pages = curriculum.reduce(
-    (sum, i) => sum + (i.pagesConf === "none" ? 0 : i.pages),
-    0,
-  );
+  const pages = curriculum.reduce((sum, i) => sum + (i.pagesConf === 'none' ? 0 : i.pages), 0);
 
   if (curriculum.length === 0) {
     return <p className="wb-quiet">No curriculum items in this plan.</p>;
@@ -388,7 +372,7 @@ function Progress({ plan }: { plan: Plan }) {
 
 /** The note box: always present, never a popup. */
 function NoteBox() {
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   return (
     <textarea
       className="wb-note"
@@ -417,17 +401,8 @@ function ChecklistPane({
   );
 }
 
-function ArtifactPane({
-  artifact,
-  mode,
-}: {
-  artifact: Artifact;
-  mode: ViewMode;
-}) {
-  const load = useCallback(
-    () => ipc().readArtifact(artifact.id),
-    [artifact.id],
-  );
+function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }) {
+  const load = useCallback(() => ipc().readArtifact(artifact.id), [artifact.id]);
   const content = useAsync(load);
 
   const savePosition = useCallback(
@@ -437,10 +412,7 @@ function ArtifactPane({
     [artifact.id],
   );
 
-  const loadPosition = useCallback(
-    () => ipc().getPosition(artifact.id),
-    [artifact.id],
-  );
+  const loadPosition = useCallback(() => ipc().getPosition(artifact.id), [artifact.id]);
   const position = useAsync(loadPosition);
 
   const saveContent = useCallback(
@@ -456,12 +428,10 @@ function ArtifactPane({
       emptyTitle="This file is empty"
     >
       {(c) =>
-        c.kind === "pdf" ? (
+        c.kind === 'pdf' ? (
           <PdfViewer
             data={c.body}
-            initialPage={
-              position.status === "ready" ? position.data.page : null
-            }
+            initialPage={position.status === 'ready' ? position.data.page : null}
             onPageChange={savePosition}
             title={artifact.title}
           />

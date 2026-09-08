@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from 'react';
 
-import type { Item } from "../ipc";
-import "./checklist.css";
+import type { Item } from '../ipc';
+import './checklist.css';
 
 /**
  * The checklist. Ticking a box here edits the real plan file.
@@ -97,11 +97,8 @@ export function Checklist({ items, onTick }: ChecklistProps) {
           <h3 className="cl-section-head">
             <span className="cl-section-name">{section.name}</span>
             <span className="cl-section-count" aria-hidden="true">
-              {
-                section.items.filter((i) => optimistic[i.anchor] ?? i.checked)
-                  .length
-              }
-              /{section.items.length}
+              {section.items.filter((i) => optimistic[i.anchor] ?? i.checked).length}/
+              {section.items.length}
             </span>
           </h3>
 
@@ -122,9 +119,7 @@ export function Checklist({ items, onTick }: ChecklistProps) {
                         void handleTick(item, e.target.checked);
                       }}
                     />
-                    <span
-                      className={checked ? "cl-text cl-text-done" : "cl-text"}
-                    >
+                    <span className={checked ? 'cl-text cl-text-done' : 'cl-text'}>
                       {item.text}
                     </span>
                     <Hours item={item} />
@@ -157,12 +152,12 @@ export function Checklist({ items, onTick }: ChecklistProps) {
  * time, which is the failure the whole role model exists to prevent.
  */
 function Hours({ item }: { item: Item }) {
-  if (item.hoursConf === "none") {
+  if (item.hoursConf === 'none') {
     return <span className="cl-hours cl-hours-unstated">no estimate</span>;
   }
-  if (item.hoursConf === "low") {
+  if (item.hoursConf === 'low') {
     return (
-      <span className="cl-hours cl-hours-low" title={item.notes.join("\n")}>
+      <span className="cl-hours cl-hours-low" title={item.notes.join('\n')}>
         ~{item.hours}h<span aria-hidden="true">?</span>
         <span className="cl-sr">, unconfirmed estimate</span>
       </span>
