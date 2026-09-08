@@ -3,15 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import { Layout } from './Layout';
 
-function renderLayout() {
+function renderLayout(props: { railCollapsed?: boolean; planCollapsed?: boolean } = {}) {
   return render(
     <Layout
-      header={<span>header content</span>}
-      material={<span>material content</span>}
-      progress={<span>progress content</span>}
-      session={<span>session content</span>}
-      note={<textarea aria-label="Session note" />}
+      title={<span>title content</span>}
+      tabs={<span>tabs content</span>}
+      document={<span>document content</span>}
+      rail={<span>rail content</span>}
       viewer={<span>viewer content</span>}
+      plan={<textarea aria-label="Session note" />}
+      status={<span>status content</span>}
+      {...props}
     />,
   );
 }
@@ -20,49 +22,61 @@ describe('Layout', () => {
   it('renders every region it was given', () => {
     renderLayout();
     for (const text of [
-      'header content',
-      'material content',
-      'progress content',
-      'session content',
+      'title content',
+      'tabs content',
+      'document content',
+      'rail content',
       'viewer content',
+      'status content',
     ]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
   });
 
-  it('labels the rail regions as headings', () => {
-    renderLayout();
-    // Real headings, not styled text: the rail should be navigable by screen
-    // reader and by heading-jump shortcuts.
-    const headings = screen.getAllByRole('heading', { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual([
-      'Material',
-      'Topic',
-      'Session',
-    ]);
-  });
-
-  it('gives the viewer an accessible name', () => {
+  it('names the three regions a screen reader has to tell apart', () => {
     renderLayout();
     expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
+    expect(screen.getByRole('complementary', { name: 'Material' })).toBeTruthy();
+    expect(screen.getByRole('complementary', { name: 'Plan' })).toBeTruthy();
   });
 
-  it('keeps the note box in the frame rather than behind a control', () => {
+  // Reading a document and ticking the item it belongs to is the product.
+  // While the plan was a destination rather than a pane, doing both at once
+  // was impossible - which rebuilt the four-app problem one level down.
+  it('shows the plan beside the viewer rather than instead of it', () => {
     renderLayout();
-    // The note must always be visible. A note you have to summon is a note
-    // that does not get written, and homework is the named failure mode.
-    const note = screen.getByLabelText('Session note');
-    expect(note).toBeTruthy();
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.queryByRole('button', { name: /note/i })).toBeNull();
+    expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
+    expect(screen.getByLabelText('Session note')).toBeTruthy();
   });
 
-  it('renders the note outside the scrolling material region', () => {
-    const { container } = renderLayout();
-    const material = container.querySelector('.wb-rail-material');
-    const note = screen.getByLabelText('Session note');
+  describe('reading mode', () => {
+    it('hides a collapsed pane from assistive technology', () => {
+      renderLayout({ railCollapsed: true });
 
-    // A long material list must not be able to push the note off screen.
-    expect(material?.contains(note)).toBe(false);
+      // A pane animated to zero width is still in the accessibility tree and
+      // still focusable unless it is taken out of both, and then Tab appears
+      // to jump into nothing.
+      expect(screen.queryByRole('complementary', { name: 'Material' })).toBeNull();
+      expect(screen.getByRole('complementary', { name: 'Plan' })).toBeTruthy();
+    });
+
+    it('collapses both panes independently', () => {
+      renderLayout({ railCollapsed: true, planCollapsed: true });
+
+      expect(screen.queryByRole('complementary', { name: 'Material' })).toBeNull();
+      expect(screen.queryByRole('complementary', { name: 'Plan' })).toBeNull();
+      // The viewer is the point of reading mode and never collapses.
+      expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
+    });
+
+    it('keeps a collapsed pane mounted so it does not lose its scroll position', () => {
+      const { container } = renderLayout({ railCollapsed: true });
+
+      // Width animates; the pane is not unmounted. Coming out of reading mode
+      // should put the rail back where it was, not at the top.
+      const rail = container.querySelector('.wb-rail-shut');
+      expect(rail).not.toBeNull();
+      expect(rail?.textContent).toBe('rail content');
+    });
   });
 });
