@@ -1,3 +1,4 @@
+import { Moon, PanelLeft, PanelRight, Sun } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAsync } from '../hooks/useAsync';
@@ -6,21 +7,19 @@ import type { Artifact, Item, Plan } from '../ipc';
 import { Checklist } from '../plan/Checklist';
 import { MarkdownViewer } from '../viewers/MarkdownViewer';
 import { PdfViewer } from '../viewers/PdfViewer';
+import { Explorer } from './Explorer';
 import { FirstRun } from './FirstRun';
 import { Layout } from './Layout';
 import { AsyncView, Empty } from './States';
+import { StatusBar } from './StatusBar';
+import { TabBar } from './TabBar';
+import type { ViewMode } from './ViewToggle';
+import { ViewToggle } from './ViewToggle';
 import { useShortcuts } from './useShortcuts';
+import { useTabs } from './useTabs';
 import { useTheme } from './useTheme';
 import './workbench.css';
 
-/**
- * The workbench: the screen that replaces four applications.
- *
- * It owns the selection state — which topic, which artifact — and nothing else.
- * Everything displayed comes from the bridge, and every write goes back through
- * it. The component never reaches past `ipc()`, which is what lets the whole
- * screen run against the mock with no Go present.
- */
 export function Workbench() {
   // The workspace is asked about before anything else renders. Letting each
   // pane discover a missing career folder on its own produced the same message
@@ -29,46 +28,63 @@ export function Workbench() {
   const loadWorkspace = useCallback(() => ipc().getWorkspace(), []);
   const ws = useAsync(loadWorkspace);
 
-  const [topic, setTopic] = useState<string | null>(null);
-  const [artifact, setArtifact] = useState<Artifact | null>(null);
+  const tabs = useTabs();
 
   const loadPlan = useCallback(() => ipc().getPlan(), []);
   const plan = useAsync(loadPlan);
 
-  const loadTopics = useCallback(() => ipc().getTopics(), []);
-  const topics = useAsync(loadTopics);
+  /**
+   * Every topic's material, read in one pass.
+   *
+   * One call per topic rather than lazily on expand, because the rail shows a
+   * file count per folder and a count has to be measured before it is shown
+   * (C5). Lazy loading would mean a folder has no count until you open it,
+   * which defeats the reason for having one. This is a local filesystem scan
+   * with no network in front of it — ten calls cost nothing.
+   */
+  const loadTree = useCallback(async () => {
+    const topics = await ipc().getTopics();
+    const ordered = [...topics].sort((a, b) => a.order - b.order);
+    return Promise.all(
+      ordered.map(async (t) => ({ slug: t.slug, files: await ipc().getMaterial(t.slug) })),
+    );
+  }, []);
+  const tree = useAsync(loadTree);
 
-  const loadMaterial = useCallback(
-    () => (topic === null ? Promise.resolve([]) : ipc().getMaterial(topic)),
-    [topic],
-  );
-  const material = useAsync(loadMaterial);
+  const loadChecks = useCallback(() => ipc().getReconciliation(), []);
+  const checks = useAsync(loadChecks);
 
   const [theme, toggleTheme] = useTheme();
+  const [reading, setReading] = useState(false);
+
+  /*
+   * One mode for the workbench, not one per document. Switching to a markdown
+   * file and finding it in a different mode from the last one is a surprise;
+   * the mode is how you are working, not a property of the file.
+   */
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
 
   const shortcuts = useMemo(
     () => ({
-      // Escape returns to the checklist. It is the one screen that is always
-      // valid, so it is the one thing a key should always be able to reach.
-      Escape: () => {
-        setArtifact(null);
-      },
+      // Escape returns to the checklist without closing anything: coming back
+      // to what you were reading should not cost you the other tabs.
+      Escape: tabs.blur,
       't': toggleTheme,
+      'r': () => {
+        setReading((on) => !on);
+      },
     }),
-    [toggleTheme],
+    [tabs.blur, toggleTheme],
   );
   useShortcuts(shortcuts);
 
   const [planVersion, setPlanVersion] = useState(0);
-  const onTick = useCallback(
-    async (anchor: string, checked: boolean) => {
-      await ipc().tickItem(anchor, checked);
-      // The optimistic update already moved the box; this refreshes the
-      // derived figures the tick changed, like a section's completed count.
-      setPlanVersion((n) => n + 1);
-    },
-    [],
-  );
+  const onTick = useCallback(async (anchor: string, checked: boolean) => {
+    await ipc().tickItem(anchor, checked);
+    // The optimistic update already moved the box; this refreshes the derived
+    // figures the tick changed, like a section's completed count.
+    setPlanVersion((n) => n + 1);
+  }, []);
 
   // First run, or a remembered folder that has gone. Either way the workbench
   // has nothing to show, so it does not render at all.
@@ -83,54 +99,64 @@ export function Workbench() {
     );
   }
 
+  const active = tabs.active;
+
   return (
     <Layout
       key={reloads}
-      header={
-        <Header
-          topics={topics.status === 'ready' ? topics.data.map((t) => t.slug) : []}
-          selected={topic}
-          onSelect={(slug) => {
-            setTopic(slug);
-            // A new topic's artifact list is about to change; keeping the old
-            // selection would show the previous topic's document.
-            setArtifact(null);
+      railCollapsed={reading}
+      planCollapsed={reading}
+      title={
+        <TitleBar
+          root={ws.status === 'ready' ? ws.data.careerRoot : ''}
+          reading={reading}
+          onToggleReading={() => {
+            setReading((on) => !on);
           }}
-          artifact={artifact}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
       }
-      material={
-        topic === null ? (
-          <Empty title="No topic selected" hint="Choose a topic to see its material." />
-        ) : (
-          <AsyncView
-            state={material}
-            loadingLabel="Loading material…"
-            errorTitle="Could not load material"
-            emptyTitle="No material in this topic"
-            emptyHint="Add a PDF to the topic folder and it will appear here."
-          >
-            {(files) => (
-              <MaterialList files={files} selected={artifact} onSelect={setArtifact} />
-            )}
-          </AsyncView>
-        )
+      tabs={
+        <TabBar
+          open={tabs.open}
+          activeId={active?.id ?? null}
+          onFocus={tabs.focusTab}
+          onClose={tabs.closeTab}
+        />
       }
-      progress={
+      document={
+        <DocumentHeader artifact={active} mode={viewMode} onMode={setViewMode} />
+      }
+      rail={
         <AsyncView
-          state={plan}
-          loadingLabel="Loading plan…"
-          errorTitle="Could not read the plan file"
-          emptyTitle="The plan file has no items"
+          state={tree}
+          loadingLabel="Reading the career folder…"
+          errorTitle="Could not read the career folder"
+          emptyTitle="No topic folders found"
+          emptyHint="Material lives under Study guided & notes."
         >
-          {(p) => <Progress plan={p} />}
+          {(t) => (
+            <Explorer
+              tree={t}
+              openIds={tabs.open.map((a) => a.id)}
+              activeId={active?.id ?? null}
+              onOpen={tabs.openTab}
+            />
+          )}
         </AsyncView>
       }
-      session={<SessionTimer />}
-      note={<NoteBox />}
       viewer={
+        active === null ? (
+          <Empty
+            title="Nothing open"
+            hint="Choose a document from the rail. The checklist is on the right."
+          />
+        ) : (
+          <ArtifactPane artifact={active} mode={viewMode} />
+        )
+      }
+      plan={
         <AsyncView
           key={planVersion}
           state={plan}
@@ -138,111 +164,123 @@ export function Workbench() {
           errorTitle="Could not read the plan file"
           emptyTitle="The plan file has no items"
         >
-          {(p) =>
-            artifact === null ? (
+          {(p) => (
+            <div className="wb-planpane">
+              <Progress plan={p} />
               <ChecklistPane items={p.items} onTick={onTick} />
-            ) : (
-              <ArtifactPane artifact={artifact} />
-            )
-          }
+              <NoteBox />
+            </div>
+          )}
         </AsyncView>
+      }
+      status={
+        <StatusBar
+          checks={checks.status === 'ready' ? checks.data : null}
+          position={active?.path}
+        />
       }
     />
   );
 }
 
-function Header({
-  topics,
-  selected,
-  onSelect,
-  artifact,
+function TitleBar({
+  root,
+  reading,
+  onToggleReading,
   theme,
   onToggleTheme,
 }: {
-  topics: string[];
-  selected: string | null;
-  onSelect: (slug: string) => void;
-  artifact: Artifact | null;
+  root: string;
+  reading: boolean;
+  onToggleReading: () => void;
   theme: string;
   onToggleTheme: () => void;
 }) {
   return (
     <>
-      <label className="wb-topic">
-        <span className="cl-sr">Topic</span>
-        <select
-          value={selected ?? ''}
-          onChange={(e) => {
-            onSelect(e.target.value);
-          }}
-        >
-          <option value="">Select a topic…</option>
-          {topics.map((slug) => (
-            <option key={slug} value={slug}>
-              {slug}
-            </option>
-          ))}
-        </select>
-      </label>
-      <span className="wb-open">{artifact?.title ?? 'Checklist'}</span>
+      <span className="wb-brand">Threadline</span>
+      {/* The career root, always visible. The app is a lens over one folder,
+          and which folder is a fact you should never have to go and check. */}
+      <span className="wb-root" title={root}>
+        {root}
+      </span>
+
+      <span className="wb-grow" />
+
       <button
         type="button"
-        className="wb-theme"
-        onClick={onToggleTheme}
-        aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-        title="Toggle theme (t)"
+        className="wb-icon-btn"
+        aria-pressed={reading}
+        // The name says what the control does, not what it is. "Reading mode"
+        // alone leaves a screen reader user to guess what pressing it changes.
+        aria-label={reading ? 'Show the rail and plan panes' : 'Reading mode: collapse both side panes'}
+        title={reading ? 'Show both panes (R)' : 'Reading mode (R)'}
+        onClick={onToggleReading}
       >
-        {theme === 'dark' ? '☾' : '☀'}
+        {reading ? (
+          <PanelLeft className="wb-icon" aria-hidden="true" />
+        ) : (
+          <PanelRight className="wb-icon" aria-hidden="true" />
+        )}
+      </button>
+
+      <button
+        type="button"
+        className="wb-icon-btn"
+        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        title="Toggle theme (T)"
+        onClick={onToggleTheme}
+      >
+        {theme === 'dark' ? (
+          <Sun className="wb-icon" aria-hidden="true" />
+        ) : (
+          <Moon className="wb-icon" aria-hidden="true" />
+        )}
       </button>
     </>
   );
 }
 
-function MaterialList({
-  files,
-  selected,
-  onSelect,
+const PLAN_READ_ONLY =
+  'The plan file changes only by ticking a checkbox, so that nothing else in it can move.';
+
+function DocumentHeader({
+  artifact,
+  mode,
+  onMode,
 }: {
-  files: Artifact[];
-  selected: Artifact | null;
-  onSelect: (a: Artifact | null) => void;
+  artifact: Artifact | null;
+  mode: ViewMode;
+  onMode: (mode: ViewMode) => void;
 }) {
+  if (artifact === null) {
+    return <span className="wb-quiet">No document open</span>;
+  }
+
   return (
-    <ul className="wb-material" role="list">
-      <li>
-        <button
-          type="button"
-          className={selected === null ? 'wb-material-item is-open' : 'wb-material-item'}
-          onClick={() => {
-            onSelect(null);
-          }}
-        >
-          Checklist
-        </button>
-      </li>
-      {files.map((f) => (
-        <li key={f.id}>
-          <button
-            type="button"
-            className={selected?.id === f.id ? 'wb-material-item is-open' : 'wb-material-item'}
-            onClick={() => {
-              onSelect(f);
-            }}
-          >
-            {f.title}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <>
+      <span className="wb-doctitle">{artifact.title}</span>
+      <span className="wb-grow" />
+      {/* The switch belongs to markdown. A PDF has no edit mode, and a control
+          that appears everywhere and works sometimes is worse than one that
+          appears where it applies. */}
+      {artifact.ext.toLowerCase() === '.md' && (
+        <ViewToggle
+          mode={mode}
+          onChange={onMode}
+          readOnlyReason={artifact.isPlanFile ? PLAN_READ_ONLY : undefined}
+        />
+      )}
+    </>
   );
 }
 
 /**
- * Topic progress, counted from the plan rather than invented.
+ * Topics done, and pages.
  *
- * Every figure here came out of a file the user wrote. That is the whole
- * honest-numbers rule (C5): show a proportion only when the denominator came
- * from outside your head.
+ * `done` counts curriculum items the plan itself has ticked. It is not
+ * inferred from pages read or time spent: the plan says what is finished, and
+ * anything else would be a number the app made up about the user's own work.
  */
 function Progress({ plan }: { plan: Plan }) {
   const curriculum = plan.items.filter((i) => i.role === 'curriculum');
@@ -262,22 +300,6 @@ function Progress({ plan }: { plan: Plan }) {
       <dt>Pages</dt>
       <dd>{pages}pp</dd>
     </dl>
-  );
-}
-
-/**
- * The session timer.
- *
- * A placeholder in I3: the real lifecycle — idle detection, scope inference,
- * crash-safe persistence — is I5. Showing a fixed dash rather than a running
- * clock is deliberate; a timer that counts but records nothing would display a
- * number nothing measured (C5).
- */
-function SessionTimer() {
-  return (
-    <p className="wb-timer" aria-label="Session time">
-      <span className="wb-quiet">not recording yet</span>
-    </p>
   );
 }
 
@@ -306,13 +328,13 @@ function ChecklistPane({
   onTick: (anchor: string, checked: boolean) => Promise<void>;
 }) {
   return (
-    <div className="wb-pane">
+    <div className="wb-checklist">
       <Checklist items={items} onTick={onTick} />
     </div>
   );
 }
 
-function ArtifactPane({ artifact }: { artifact: Artifact }) {
+function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }) {
   const load = useCallback(() => ipc().readArtifact(artifact.id), [artifact.id]);
   const content = useAsync(load);
 
@@ -351,11 +373,8 @@ function ArtifactPane({ artifact }: { artifact: Artifact }) {
             source={c.body}
             title={artifact.title}
             readOnly={artifact.isPlanFile}
-            readOnlyReason={
-              artifact.isPlanFile
-                ? 'The plan file changes only by ticking a checkbox, so that nothing else in it can move.'
-                : undefined
-            }
+            mode={mode}
+            readOnlyReason={artifact.isPlanFile ? PLAN_READ_ONLY : undefined}
             onSave={artifact.isPlanFile ? undefined : saveContent}
           />
         )

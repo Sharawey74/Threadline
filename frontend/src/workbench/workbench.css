@@ -124,3 +124,89 @@
   color: var(--fg);
   border-color: var(--border-strong);
 }
+
+/* ── Title bar ──────────────────────────────────────────────── */
+
+.wb-brand {
+  font-size: var(--step-0);
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.wb-root {
+  /* The career root, always visible: the app is a lens over one folder, and
+     which folder should never be something you go and check. It truncates from
+     the left, because the end of a path identifies it and the start rarely does. */
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.wb-grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.wb-icon-btn:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
+.wb-icon-btn[aria-pressed='true'] {
+  color: var(--fg);
+  background: var(--accent-quiet);
+}
+
+.wb-icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* ── Document header ────────────────────────────────────────── */
+
+.wb-doctitle {
+  min-width: 0;
+  font-size: var(--step-1);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Plan pane ──────────────────────────────────────────────── */
+
+.wb-planpane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.wb-checklist {
+  /* The only part that grows, so the note box below it stays put however long
+     the checklist gets. */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2) var(--space-3);
+}
