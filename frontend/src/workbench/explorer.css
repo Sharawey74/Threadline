@@ -1,0 +1,186 @@
+.ex {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.ex-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.ex-search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--fg-muted);
+  flex: 0 0 auto;
+}
+
+.ex-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  padding: var(--space-1) 0;
+}
+
+.ex-input::placeholder {
+  color: var(--fg-faint);
+}
+
+.ex-tree {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-3);
+}
+
+.ex-none {
+  margin: 0;
+  padding: var(--space-4) var(--space-3);
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+}
+
+.ex-topic-head {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  /* The topic headings stay put while their files scroll under them, so the
+     folder a file belongs to is never off screen above it. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-inset);
+}
+
+.ex-topic-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--fg);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ex-topic-btn:hover {
+  background: var(--bg-hover);
+}
+
+.ex-chev {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+}
+
+.ex-topic-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ex-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--fg-muted);
+}
+
+.ex-files {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ex-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  /* Indented to the chevron, so a file reads as belonging to the folder above
+     it rather than sitting at the same level. */
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-6);
+  min-height: 26px;
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ex-file:hover:not(:disabled) {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
+.ex-file-open {
+  color: var(--fg);
+}
+
+.ex-file-on {
+  color: var(--fg);
+  background: var(--accent-quiet);
+  /* Marked by a bar as well as by colour: the current file has to be findable
+     without separating two close greys. */
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.ex-file:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+
+.ex-file-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.ex-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ex-ext {
+  margin-left: auto;
+  padding: 0 4px;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--fg-faint);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+/* Visible to a screen reader, not to the eye. */
+.ex-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
