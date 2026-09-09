@@ -26,7 +26,7 @@ func writable(t *testing.T) (path string, r *Resolver) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	path = filepath.Join(dir, "TASKS.md")
+	path = filepath.Join(dir, "Roadmap_Checklist.md")
 	if err := os.WriteFile(path, src, 0o600); err != nil {
 		t.Fatal(err)
 	}

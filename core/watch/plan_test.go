@@ -15,7 +15,7 @@ func harness(t *testing.T, initial string) (path string, changes *atomic.Int32) 
 	t.Helper()
 
 	dir := t.TempDir()
-	path = filepath.Join(dir, "TASKS.md")
+	path = filepath.Join(dir, "Roadmap_Checklist.md")
 	if err := os.WriteFile(path, []byte(initial), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestIgnoresOtherFilesInTheDirectory(t *testing.T) {
 // report the app's change back to it.
 func TestMarkWrittenSuppressesTheAppsOwnWrite(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "TASKS.md")
+	path := filepath.Join(dir, "Roadmap_Checklist.md")
 	if err := os.WriteFile(path, []byte("- [ ] task\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestReportsDeletionAndRecreation(t *testing.T) {
 
 func TestRunStopsWhenTheContextIsCancelled(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "TASKS.md")
+	path := filepath.Join(dir, "Roadmap_Checklist.md")
 	if err := os.WriteFile(path, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
