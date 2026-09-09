@@ -1,6 +1,6 @@
 # ── Planning layer — local only, never committed ──────────────
 plans/
-TASKS.md
+BUILD-TASKS.md
 CLAUDE.md
 *.backup-*.md
 
