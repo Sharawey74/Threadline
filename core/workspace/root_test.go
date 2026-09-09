@@ -84,7 +84,7 @@ func TestIsPlanFile(t *testing.T) {
 		{"an ordinary note", filepath.Join(dir, "notes", "ideas.md"), false},
 		{"a file that does not exist", filepath.Join(dir, "nothing.md"), false},
 		{
-			// A different TASKS.md deeper in the tree is not the plan file.
+			// A different Roadmap_Checklist.md deeper in the tree is not the plan file.
 			// Matching on name alone would make every one of them unwritable.
 			name: "a same-named file in a subfolder",
 			path: filepath.Join(dir, "notes", PlanFileName),

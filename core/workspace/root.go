@@ -136,9 +136,9 @@ func resolve(path string) (string, error) {
 
 // sameString compares paths case-insensitively.
 //
-// Windows filesystems are case-insensitive, so "tasks.md" and "TASKS.md" are
-// the same file. Treating them as different would leave the plan file writable
-// under a differently-cased name.
+// Windows filesystems are case-insensitive, so "roadmap_checklist.md" and
+// "Roadmap_Checklist.md" are the same file. Treating them as different would
+// leave the plan file writable under a differently-cased name.
 func sameString(a, b string) bool {
 	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }
