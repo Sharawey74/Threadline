@@ -14,11 +14,12 @@ import (
 
 	"github.com/Sharawey74/Threadline/core/plan"
 	"github.com/Sharawey74/Threadline/core/scan"
+	"github.com/Sharawey74/Threadline/core/workspace"
 )
 
 func main() {
 	root := flag.String("root", ".", "career root folder")
-	file := flag.String("file", "TASKS.md", "plan file, relative to the root")
+	file := flag.String("file", workspace.PlanFileName, "plan file, relative to the root")
 	verbose := flag.Bool("v", false, "list every item and every note")
 	flag.Parse()
 

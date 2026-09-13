@@ -101,7 +101,7 @@ const material: Record<string, Artifact[]> = {
     { id: 1, path: '06 - System Design/Fundamentals v3.pdf', title: 'Fundamentals v3', ext: '.pdf', isPlanFile: false },
     { id: 2, path: '06 - System Design/notes.md', title: 'My notes', ext: '.md', isPlanFile: false },
     // The plan file: editable nowhere, tickable everywhere.
-    { id: 9, path: 'TASKS.md', title: 'TASKS.md', ext: '.md', isPlanFile: true },
+    { id: 9, path: 'Roadmap_Checklist.md', title: 'Roadmap_Checklist.md', ext: '.md', isPlanFile: true },
   ],
   '02 - Databases & Storage': [
     { id: 3, path: '02 - Databases & Storage/ACID.pdf', title: 'ACID', ext: '.pdf', isPlanFile: false },
@@ -183,7 +183,7 @@ export class MockIPC implements IPC {
   getWorkspace(): Promise<Workspace> {
     return delay<Workspace>({
       careerRoot: this.careerRoot,
-      planFile: this.careerRoot === '' ? '' : `${this.careerRoot}/TASKS.md`,
+      planFile: this.careerRoot === '' ? '' : `${this.careerRoot}/Roadmap_Checklist.md`,
       hasPlan: this.careerRoot !== '',
       problem: '',
     });

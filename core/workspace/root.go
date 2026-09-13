@@ -15,7 +15,13 @@ import (
 
 // PlanFileName is the plan file, by definition: the markdown file at the root
 // of the career folder. Everything else is an ordinary document.
-const PlanFileName = "TASKS.md"
+//
+// Renamed from TASKS.md on 9 Sep 2026. Two different files were called TASKS.md
+// - the user's career plan and Threadline's own build task list - and the
+// collision cost enough confusion to be worth a rename. The user renamed the
+// file on disk and this constant did not follow, so the app could not find its
+// plan file at all until 9 Sep.
+const PlanFileName = "Roadmap_Checklist.md"
 
 // ErrNotADirectory reports a career root that is not a folder.
 var ErrNotADirectory = errors.New("career root is not a directory")
@@ -130,9 +136,9 @@ func resolve(path string) (string, error) {
 
 // sameString compares paths case-insensitively.
 //
-// Windows filesystems are case-insensitive, so "tasks.md" and "TASKS.md" are
-// the same file. Treating them as different would leave the plan file writable
-// under a differently-cased name.
+// Windows filesystems are case-insensitive, so "roadmap_checklist.md" and
+// "Roadmap_Checklist.md" are the same file. Treating them as different would
+// leave the plan file writable under a differently-cased name.
 func sameString(a, b string) bool {
 	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
 }

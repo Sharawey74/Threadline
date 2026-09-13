@@ -19,12 +19,12 @@ const SOURCE = [
 
 describe('MarkdownViewer', () => {
   it('renders headings and paragraphs', () => {
-    render(<MarkdownViewer source={SOURCE} title="TASKS.md" />);
+    render(<MarkdownViewer source={SOURCE} title="Roadmap_Checklist.md" />);
     expect(screen.getByRole('heading', { name: 'Career plan' })).toBeTruthy();
   });
 
   it('renders tables, which the plan file uses throughout', () => {
-    render(<MarkdownViewer source={SOURCE} title="TASKS.md" />);
+    render(<MarkdownViewer source={SOURCE} title="Roadmap_Checklist.md" />);
     // F6 names tables explicitly: the budget figures live in one.
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Hours' })).toBeTruthy();
@@ -32,7 +32,7 @@ describe('MarkdownViewer', () => {
   });
 
   it('renders task list checkboxes', () => {
-    render(<MarkdownViewer source={SOURCE} title="TASKS.md" />);
+    render(<MarkdownViewer source={SOURCE} title="Roadmap_Checklist.md" />);
     const boxes = screen.getAllByRole('checkbox');
     expect(boxes).toHaveLength(2);
     expect((boxes[1] as HTMLInputElement).checked).toBe(true);
@@ -40,15 +40,15 @@ describe('MarkdownViewer', () => {
 
   it('starts in preview and switches to source when read-only', async () => {
     const user = userEvent.setup();
-    render(<MarkdownViewer source={SOURCE} title="TASKS.md" readOnly />);
+    render(<MarkdownViewer source={SOURCE} title="Roadmap_Checklist.md" readOnly />);
 
-    expect(screen.getByLabelText('TASKS.md, preview')).toBeTruthy();
-    expect(screen.queryByLabelText('TASKS.md, source')).toBeNull();
+    expect(screen.getByLabelText('Roadmap_Checklist.md, preview')).toBeTruthy();
+    expect(screen.queryByLabelText('Roadmap_Checklist.md, source')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Source' }));
 
-    expect(screen.getByLabelText('TASKS.md, source')).toBeTruthy();
-    expect(screen.queryByLabelText('TASKS.md, preview')).toBeNull();
+    expect(screen.getByLabelText('Roadmap_Checklist.md, source')).toBeTruthy();
+    expect(screen.queryByLabelText('Roadmap_Checklist.md, preview')).toBeNull();
   });
 
   it('shows both panes in split mode', async () => {
@@ -75,13 +75,13 @@ describe('MarkdownViewer', () => {
 
   it('shows the source exactly as written, markup included', async () => {
     const user = userEvent.setup();
-    render(<MarkdownViewer source={SOURCE} title="TASKS.md" readOnly />);
+    render(<MarkdownViewer source={SOURCE} title="Roadmap_Checklist.md" readOnly />);
 
     await user.click(screen.getByRole('button', { name: 'Source' }));
 
     // Source mode exists so the user can see what the parser sees. Rendering
     // it would defeat the point.
-    expect(screen.getByLabelText('TASKS.md, source').textContent).toContain(
+    expect(screen.getByLabelText('Roadmap_Checklist.md, source').textContent).toContain(
       '- [ ] **1. `02 - Databases`**',
     );
   });
@@ -91,7 +91,7 @@ describe('MarkdownViewer', () => {
     render(
       <MarkdownViewer
         source={SOURCE}
-        title="TASKS.md"
+        title="Roadmap_Checklist.md"
         readOnly
         readOnlyReason="The plan file changes only by ticking a checkbox."
       />,

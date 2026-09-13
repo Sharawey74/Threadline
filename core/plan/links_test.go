@@ -20,7 +20,7 @@ func careerRoot(t *testing.T) string {
 		}
 	}
 	writeFile(t, filepath.Join(root, "Study guided & notes/06 - System Design/Fundamentals v3.pdf"))
-	writeFile(t, filepath.Join(root, "TASKS.md"))
+	writeFile(t, filepath.Join(root, "Roadmap_Checklist.md"))
 	return root
 }
 
@@ -54,7 +54,7 @@ func TestResolve(t *testing.T) {
 		},
 		{
 			name: "file resolves to a file, not a folder",
-			span: "TASKS.md",
+			span: "Roadmap_Checklist.md",
 			kind: LinkFile,
 		},
 		{

@@ -1,4 +1,4 @@
-# Threadline CI - the gates named in TASKS.md, active from the first commit.
+# Threadline CI - the gates named in BUILD-TASKS.md, active from the first commit.
 #
 # Every job is guarded so the pipeline is green on an empty repository (Phase 0
 # requires exactly that) and tightens automatically as each layer lands. Guards
