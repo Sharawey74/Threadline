@@ -5,24 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setIPC } from '../ipc';
 import { MockIPC } from '../ipc/mock';
 
-// pdf.js cannot run in jsdom. The viewer has its own tests; here it only needs
-// to prove it is reached.
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: () => ({
-    promise: Promise.resolve({
-      numPages: 31,
-      getPage: () =>
-        Promise.resolve({
-          getViewport: () => ({ width: 100, height: 100 }),
-          render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
-        }),
-    }),
-    destroy: vi.fn(),
-  }),
-}));
-
-const { Workbench } = await import('./Workbench');
+import { Workbench } from './Workbench';
 
 beforeEach(() => {
   setIPC(new MockIPC());
@@ -90,6 +73,22 @@ describe('the workbench', () => {
       await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
 
       expect(screen.getByRole('tab', { name: /Fundamentals v3/ })).toBeTruthy();
+    });
+
+    // Threadline renders no PDF (9 Sep 2026). Opening one must not read it
+    // either: the bytes would cross the bridge to be thrown away.
+    it('hands a PDF to Edge rather than reading it', async () => {
+      const mock = new MockIPC();
+      const read = vi.spyOn(mock, 'readArtifact');
+      setIPC(mock);
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
+
+      expect(screen.getByText('Fundamentals v3 opens in Edge')).toBeTruthy();
+      expect(read).not.toHaveBeenCalled();
     });
 
     // The whole reason tabs exist: comparing a plan item against the document
