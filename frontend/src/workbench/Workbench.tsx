@@ -423,7 +423,7 @@ function NoteBox() {
   return (
     <textarea
       className="wb-note"
-      aria-label="Session note"
+      aria-label="Note"
       placeholder="What are you working on?"
       rows={3}
       value={text}

@@ -8,7 +8,7 @@ function Harness({ shortcuts }: { shortcuts: Record<string, () => void> }) {
   useShortcuts(shortcuts);
   return (
     <div>
-      <textarea aria-label="Session note" />
+      <textarea aria-label="Note" />
       <input aria-label="Search" />
       <button type="button">elsewhere</button>
     </div>
@@ -37,14 +37,14 @@ describe('useShortcuts', () => {
     const user = userEvent.setup();
     render(<Harness shortcuts={{ t }} />);
 
-    await user.click(screen.getByLabelText('Session note'));
+    await user.click(screen.getByLabelText('Note'));
     await user.keyboard('this task took two hours');
 
     // The note box is always focused and always present. A bare-letter
     // shortcut that stole keystrokes would make it unusable - and the note
     // box is what the whole anti-homework design rests on.
     expect(t).not.toHaveBeenCalled();
-    expect((screen.getByLabelText('Session note') as HTMLTextAreaElement).value).toBe(
+    expect((screen.getByLabelText('Note') as HTMLTextAreaElement).value).toBe(
       'this task took two hours',
     );
   });
@@ -86,7 +86,7 @@ describe('useShortcuts', () => {
     render(<Harness shortcuts={{ 'mod+k': palette }} />);
 
     const user = userEvent.setup();
-    await user.click(screen.getByLabelText('Session note'));
+    await user.click(screen.getByLabelText('Note'));
     await user.keyboard('{Control>}k{/Control}');
 
     expect(palette).toHaveBeenCalledOnce();

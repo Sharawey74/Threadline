@@ -11,6 +11,16 @@ beforeEach(() => {
   setIPC(new MockIPC());
 });
 
+/** Fails on "session" anywhere a user could read or hear it. */
+function expectNoSessionWording() {
+  expect(document.body.textContent).not.toMatch(/session/i);
+  for (const el of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
+    for (const attr of ['aria-label', 'title', 'placeholder']) {
+      expect(el.getAttribute(attr) ?? '').not.toMatch(/session/i);
+    }
+  }
+}
+
 /** Waits for the material rail to finish its first read. */
 async function railReady() {
   await waitFor(() => {
@@ -145,20 +155,23 @@ describe('the workbench', () => {
     render(<Workbench />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Session note')).toBeTruthy();
+      expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
     });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('does not show a running timer before sessions are recorded', async () => {
+  // Sessions were deleted on 9 Sep 2026, not deferred. A label still saying
+  // "session" would promise the user a record that nothing keeps.
+  it('the note box carries no session framing', async () => {
+    const user = userEvent.setup();
     render(<Workbench />);
-    await waitFor(() => {
-      expect(screen.getByText(/Notes track/)).toBeTruthy();
-    });
+    await railReady();
 
-    // Sessions are I5. A timer that counted but recorded nothing would put a
-    // number on screen that nothing measured.
-    expect(screen.queryByText(/\d+:\d\d/)).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
+    expectNoSessionWording();
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    expectNoSessionWording();
   });
 
   it('collapses both side panes in reading mode', async () => {
