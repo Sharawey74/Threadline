@@ -10,6 +10,10 @@ CLAUDE.md
 /tasks/
 /instructions.md
 
+# Claude Code project config - local hooks, permissions and skill copies. It
+# reads the gitignored planning files, so it stays beside the repo with them.
+/.claude/
+
 # docs/ is part of the planning layer too. ADRs live on disk beside the repo
 # rather than inside it; the reasoning stays private.
 docs/
