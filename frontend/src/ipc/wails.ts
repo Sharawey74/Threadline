@@ -11,36 +11,19 @@
 
 import {
   ChooseCareerRoot,
-  EndSession,
-  GetBudgetStatus,
   GetMaterial,
   GetPlan,
-  GetPosition,
   GetReconciliation,
   GetTopics,
   GetWorkspace,
   ReadArtifact,
-  SavePosition,
   SetCareerRoot,
-  StartSession,
   TickItem,
   WriteArtifact,
 } from '../../wailsjs/go/bridge/App';
 import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
 
-import type {
-  Artifact,
-  Budget,
-  Check,
-  Content,
-  EndReason,
-  EventName,
-  Plan,
-  Position,
-  SessionId,
-  Topic,
-  Workspace,
-} from './types';
+import type { Artifact, Check, Content, EventName, Plan, Topic, Workspace } from './types';
 import type { IPC } from './index';
 
 export class WailsIPC implements IPC {
@@ -62,14 +45,6 @@ export class WailsIPC implements IPC {
     return GetReconciliation() as Promise<Check[]>;
   }
 
-  getBudgetStatus(): Promise<Budget> {
-    return GetBudgetStatus() as Promise<Budget>;
-  }
-
-  getPosition(artifactId: number): Promise<Position> {
-    return GetPosition(artifactId) as Promise<Position>;
-  }
-
   readArtifact(artifactId: number): Promise<Content> {
     return ReadArtifact(artifactId) as Promise<Content>;
   }
@@ -86,18 +61,6 @@ export class WailsIPC implements IPC {
 
   writeArtifact(artifactId: number, content: string): Promise<void> {
     return WriteArtifact(artifactId, content);
-  }
-
-  savePosition(artifactId: number, page: number): Promise<void> {
-    return SavePosition(artifactId, page);
-  }
-
-  startSession(scopeKind: string, scopeRef: string): Promise<SessionId> {
-    return StartSession(scopeKind, scopeRef);
-  }
-
-  endSession(id: SessionId, note: string, reason: EndReason): Promise<void> {
-    return EndSession(id, note, reason);
   }
 
   setCareerRoot(path: string): Promise<void> {
