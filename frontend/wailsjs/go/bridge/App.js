@@ -6,24 +6,12 @@ export function ChooseCareerRoot() {
   return window['go']['bridge']['App']['ChooseCareerRoot']();
 }
 
-export function EndSession(arg1, arg2, arg3) {
-  return window['go']['bridge']['App']['EndSession'](arg1, arg2, arg3);
-}
-
-export function GetBudgetStatus() {
-  return window['go']['bridge']['App']['GetBudgetStatus']();
-}
-
 export function GetMaterial(arg1) {
   return window['go']['bridge']['App']['GetMaterial'](arg1);
 }
 
 export function GetPlan() {
   return window['go']['bridge']['App']['GetPlan']();
-}
-
-export function GetPosition(arg1) {
-  return window['go']['bridge']['App']['GetPosition'](arg1);
 }
 
 export function GetReconciliation() {
@@ -42,16 +30,8 @@ export function ReadArtifact(arg1) {
   return window['go']['bridge']['App']['ReadArtifact'](arg1);
 }
 
-export function SavePosition(arg1, arg2) {
-  return window['go']['bridge']['App']['SavePosition'](arg1, arg2);
-}
-
 export function SetCareerRoot(arg1) {
   return window['go']['bridge']['App']['SetCareerRoot'](arg1);
-}
-
-export function StartSession(arg1, arg2) {
-  return window['go']['bridge']['App']['StartSession'](arg1, arg2);
 }
 
 export function TickItem(arg1, arg2) {
