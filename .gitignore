@@ -4,6 +4,12 @@ BUILD-TASKS.md
 CLAUDE.md
 *.backup-*.md
 
+# AetherBench planning files - root only, so a tasks/ folder in the code stays tracked
+/TASKS.md
+/issues.md
+/tasks/
+/instructions.md
+
 # docs/ is part of the planning layer too. ADRs live on disk beside the repo
 # rather than inside it; the reasoning stays private.
 docs/
