@@ -86,8 +86,9 @@ describe('the workbench', () => {
     });
 
     // Threadline renders no PDF (9 Sep 2026). Opening one must not read it
-    // either: the bytes would cross the bridge to be thrown away.
-    it('hands a PDF to Edge rather than reading it', async () => {
+    // either: the bytes would cross the bridge to be thrown away. Nothing
+    // launches Edge yet (Phase 8), so the pane must not claim that it does.
+    it('does not render or read a PDF', async () => {
       const mock = new MockIPC();
       const read = vi.spyOn(mock, 'readArtifact');
       setIPC(mock);
@@ -97,7 +98,8 @@ describe('the workbench', () => {
 
       await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
 
-      expect(screen.getByText('Fundamentals v3 opens in Edge')).toBeTruthy();
+      expect(screen.getByText('Fundamentals v3 is a PDF')).toBeTruthy();
+      expect(screen.queryByText(/opens in Edge/)).toBeNull();
       expect(read).not.toHaveBeenCalled();
     });
 
