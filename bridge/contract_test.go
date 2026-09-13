@@ -166,7 +166,8 @@ func boundCommands() []string {
 	return out
 }
 
-var contractEntryRe = regexp.MustCompile(`'([a-zA-Z]+)'`)
+// Either quote style, so a reformat to double quotes cannot hide an entry.
+var contractEntryRe = regexp.MustCompile(`['"]([a-zA-Z]+)['"]`)
 
 // frontendContract reads the command names the frontend declares.
 //
@@ -198,7 +199,11 @@ func frontendContract(t *testing.T) []string {
 	return out
 }
 
-var interfaceMethodRe = regexp.MustCompile(`(?m)^\s+([a-z][A-Za-z]*)\(`)
+// A member of interface IPC in any declaration form TypeScript allows: a method
+// `name(`, an optional method `name?(`, a generic `name<T>(`, or a
+// function-typed property `name: (`. A narrower pattern would let a deleted
+// command back in through the form it does not recognise.
+var interfaceMethodRe = regexp.MustCompile(`(?m)^\s+([a-zA-Z][A-Za-z0-9]*)\s*\??\s*[(<:]`)
 
 // frontendInterfaceMethods reads the method names declared on interface IPC,
 // in the exported Go spelling so they compare directly with boundCommands.
