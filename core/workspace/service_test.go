@@ -175,7 +175,7 @@ func TestPlanFileRefusalDoesNotTrustTheCaller(t *testing.T) {
 
 	// A second registration under a differently-cased path: on Windows this is
 	// the same file reached by another name.
-	a, err := svc.register("tasks.md")
+	a, err := svc.register("roadmap_checklist.md")
 	if err != nil {
 		t.Skipf("cannot register the alternate casing here: %v", err)
 	}
@@ -264,79 +264,5 @@ func TestReconciliationRuns(t *testing.T) {
 	}
 	if len(checks) == 0 {
 		t.Fatal("no checks were generated")
-	}
-}
-
-func TestPositionRoundTrip(t *testing.T) {
-	svc, _ := workspace(t)
-	files, _ := svc.Material("06 - System Design")
-	id := files[0].ID
-
-	// Never opened: nil, not zero. A viewer told 0 would jump to the top of a
-	// document the user was halfway through.
-	before, err := svc.Position(id)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if before.Page != nil {
-		t.Errorf("an unopened document reported page %v", *before.Page)
-	}
-
-	if err := svc.SavePosition(id, 41); err != nil {
-		t.Fatal(err)
-	}
-	after, _ := svc.Position(id)
-	if after.Page == nil || *after.Page != 41 {
-		t.Errorf("position = %+v, want page 41", after)
-	}
-}
-
-func TestSavePositionRefusesAnUnknownArtifact(t *testing.T) {
-	svc, _ := workspace(t)
-	if err := svc.SavePosition(9999, 1); err == nil {
-		t.Fatal("an unknown artifact id was accepted")
-	}
-}
-
-// Until sessions record anything, every period must report as unmeasured
-// rather than as zero hours (C5).
-func TestBudgetReportsUnmeasuredRatherThanZero(t *testing.T) {
-	svc, _ := workspace(t)
-
-	b, err := svc.BudgetStatus()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if b.AllocatedHours != 2 {
-		t.Errorf("allocated = %v, want 2 from the fixture's schedule section", b.AllocatedHours)
-	}
-	if b.SpentHours != nil {
-		t.Errorf("spent = %v, want nil when nothing was recorded", *b.SpentHours)
-	}
-	if len(b.Periods) != 1 {
-		t.Fatalf("got %d periods, want 1", len(b.Periods))
-	}
-	if b.Periods[0].Measured {
-		t.Error("a period was reported measured before any session existed")
-	}
-	if b.Periods[0].SpentHours != nil {
-		t.Error("an unmeasured period reported spent hours")
-	}
-}
-
-func TestSessionLifecycle(t *testing.T) {
-	svc, _ := workspace(t)
-
-	id, err := svc.StartSession("topic", "06 - System Design")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := svc.EndSession(id, "stuck on consistent hashing", "app_close"); err != nil {
-		t.Fatal(err)
-	}
-	// Closing twice must fail rather than silently reopening a closed session.
-	if err := svc.EndSession(id, "", "manual"); err == nil {
-		t.Error("a closed session was closed again")
 	}
 }

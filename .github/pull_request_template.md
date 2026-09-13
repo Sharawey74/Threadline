@@ -4,7 +4,7 @@ TITLE — set it yourself, GitHub cannot prefill it from this file.
     <type>(<scope>): <subject>
 
   type   feat · fix · perf · refactor · test · docs · build · ci · chore · revert
-  scope  plan · store · write · scan · session · bridge · ui · pdf · md · ci · deps
+  scope  plan · store · write · scan · workspace · bridge · ui · md · ci · deps
 
   Imperative mood, lowercase, no trailing full stop, 72 characters maximum.
   It becomes the squashed commit on main, so write it as one.

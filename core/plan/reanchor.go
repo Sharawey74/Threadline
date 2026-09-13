@@ -40,8 +40,8 @@ const similarityThreshold = 0.85
 // ReAnchor reconciles stored anchors against a freshly parsed file.
 //
 // The store never destroys history because a file changed. An anchor with no
-// corresponding line is marked orphaned and kept: the hours were really spent,
-// and the user may simply have reworded something.
+// corresponding line is marked orphaned and kept: its history is real, and the
+// user may simply have reworded something.
 func ReAnchor(previous []AnchorState, current []Item) []AnchorMatch {
 	var out []AnchorMatch
 

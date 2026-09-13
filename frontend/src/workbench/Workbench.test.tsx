@@ -5,28 +5,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setIPC } from '../ipc';
 import { MockIPC } from '../ipc/mock';
 
-// pdf.js cannot run in jsdom. The viewer has its own tests; here it only needs
-// to prove it is reached.
-vi.mock('pdfjs-dist', () => ({
-  GlobalWorkerOptions: { workerSrc: '' },
-  getDocument: () => ({
-    promise: Promise.resolve({
-      numPages: 31,
-      getPage: () =>
-        Promise.resolve({
-          getViewport: () => ({ width: 100, height: 100 }),
-          render: () => ({ promise: Promise.resolve(), cancel: vi.fn() }),
-        }),
-    }),
-    destroy: vi.fn(),
-  }),
-}));
-
-const { Workbench } = await import('./Workbench');
+import { Workbench } from './Workbench';
 
 beforeEach(() => {
   setIPC(new MockIPC());
 });
+
+/**
+ * Fails on "session" anywhere a user could read or hear it, and on an elapsed
+ * time such as 24:18 - the figure a session timer would put on screen (C5).
+ */
+function expectNoSessionWording() {
+  expect(document.body.textContent).not.toMatch(/session/i);
+  expect(document.body.textContent).not.toMatch(/\d+:\d\d/);
+  for (const el of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
+    for (const attr of ['aria-label', 'title', 'placeholder']) {
+      expect(el.getAttribute(attr) ?? '').not.toMatch(/session/i);
+    }
+  }
+}
 
 /** Waits for the material rail to finish its first read. */
 async function railReady() {
@@ -92,6 +89,24 @@ describe('the workbench', () => {
       expect(screen.getByRole('tab', { name: /Fundamentals v3/ })).toBeTruthy();
     });
 
+    // Threadline renders no PDF (9 Sep 2026). Opening one must not read it
+    // either: the bytes would cross the bridge to be thrown away. Nothing
+    // launches Edge yet (Phase 8), so the pane must not claim that it does.
+    it('does not render or read a PDF', async () => {
+      const mock = new MockIPC();
+      const read = vi.spyOn(mock, 'readArtifact');
+      setIPC(mock);
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
+
+      expect(screen.getByText('Fundamentals v3 is a PDF')).toBeTruthy();
+      expect(screen.queryByText(/opens in Edge/)).toBeNull();
+      expect(read).not.toHaveBeenCalled();
+    });
+
     // The whole reason tabs exist: comparing a plan item against the document
     // it points at used to mean closing one to see the other.
     it('keeps the first document open when a second is opened', async () => {
@@ -146,20 +161,26 @@ describe('the workbench', () => {
     render(<Workbench />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Session note')).toBeTruthy();
+      expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
     });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('does not show a running timer before sessions are recorded', async () => {
+  // Sessions were deleted on 9 Sep 2026, not deferred. A label still saying
+  // "session" would promise the user a record that nothing keeps.
+  it('the note box carries no session framing', async () => {
+    const user = userEvent.setup();
     render(<Workbench />);
-    await waitFor(() => {
-      expect(screen.getByText(/Notes track/)).toBeTruthy();
-    });
+    await railReady();
 
-    // Sessions are I5. A timer that counted but recorded nothing would put a
-    // number on screen that nothing measured.
-    expect(screen.queryByText(/\d+:\d\d/)).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
+    expectNoSessionWording();
+
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    // Without this the second check could pass against a Settings pane that
+    // never opened.
+    expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
+    expectNoSessionWording();
   });
 
   it('collapses both side panes in reading mode', async () => {

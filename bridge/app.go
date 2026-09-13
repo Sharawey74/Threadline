@@ -10,8 +10,8 @@
 // tested without a window, and one that would have to be rewritten if the
 // bridge were ever replaced.
 //
-// Every exported method on App is one IPC command. The contract is 13 (7
-// queries, 6 commands); over 20 means the boundary is leaking (C2).
+// Every exported method on App is one IPC command. The contract is 10 (6
+// queries, 4 commands); over 20 means the boundary is leaking (C2).
 package bridge
 
 import (
@@ -27,12 +27,11 @@ import (
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// The three events Go pushes to the frontend. Names are shared with ipc/types.ts;
+// The two events Go pushes to the frontend. Names are shared with ipc/types.ts;
 // a typo here is a listener that never fires, which is why they are constants
 // rather than literals scattered through the file.
 const (
 	EventPlanChanged    = "plan:changed"
-	EventSessionTick    = "session:tick"
 	EventReconcileDrift = "reconcile:drift"
 )
 
@@ -287,30 +286,6 @@ func (a *App) WriteArtifact(artifactID int64, content string) error {
 	return a.svc.WriteArtifact(artifactID, content)
 }
 
-// SavePosition records where the user stopped in a document.
-func (a *App) SavePosition(artifactID int64, page int) error {
-	if err := a.ready(); err != nil {
-		return err
-	}
-	return a.svc.SavePosition(artifactID, page)
-}
-
-// StartSession opens a session. Sessions are I5; this reserves the command.
-func (a *App) StartSession(scopeKind, scopeRef string) (int64, error) {
-	if err := a.ready(); err != nil {
-		return 0, err
-	}
-	return a.svc.StartSession(scopeKind, scopeRef)
-}
-
-// EndSession closes a session. Sessions are I5; this reserves the command.
-func (a *App) EndSession(id int64, note, reason string) error {
-	if err := a.ready(); err != nil {
-		return err
-	}
-	return a.svc.EndSession(id, note, reason)
-}
-
 // ─── Queries ──────────────────────────────────────────────────────────
 
 // GetPlan returns the parsed plan file.
@@ -343,22 +318,6 @@ func (a *App) GetReconciliation() ([]plan.Check, error) {
 		return nil, err
 	}
 	return a.svc.Reconciliation()
-}
-
-// GetBudgetStatus returns hours allocated against hours measured.
-func (a *App) GetBudgetStatus() (workspace.Budget, error) {
-	if err := a.ready(); err != nil {
-		return workspace.Budget{}, err
-	}
-	return a.svc.BudgetStatus()
-}
-
-// GetPosition returns where the user stopped in a document.
-func (a *App) GetPosition(artifactID int64) (workspace.Position, error) {
-	if err := a.ready(); err != nil {
-		return workspace.Position{}, err
-	}
-	return a.svc.Position(artifactID)
 }
 
 // ReadArtifact returns a file's contents.

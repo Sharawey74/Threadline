@@ -7,9 +7,9 @@ import { MockIPC } from './mock';
 // §4.1 froze, and hold the mock to behaving like the bridge it stands in for.
 
 describe('the frozen contract', () => {
-  it('is 8 queries and 7 commands', () => {
-    expect(CONTRACT.queries).toHaveLength(8);
-    expect(CONTRACT.commands).toHaveLength(7);
+  it('is 6 queries and 4 commands', () => {
+    expect(CONTRACT.queries).toHaveLength(6);
+    expect(CONTRACT.commands).toHaveLength(4);
   });
 
   it('stays under the C2 ceiling', () => {
@@ -18,22 +18,19 @@ describe('the frozen contract', () => {
     // +chooseCareerRoot and +getWorkspace in I4 (the app had no way to pick a
     // folder, and every pane was discovering the same missing one).
     //
-    // 15 of 20 is three quarters of the budget spent before the app has
-    // sessions. Each further addition should have to argue that the frontend
-    // is not reaching for something the backend should be deciding.
-    expect(total).toBe(15);
+    // Then 15 → 10 on 9 Sep 2026: sessions, the hours budget and page positions
+    // were deleted, taking startSession, endSession, getBudgetStatus,
+    // savePosition and getPosition with them. The headroom is for outlines and
+    // Files, and each addition should still have to argue for itself.
+    expect(total).toBe(10);
     // C2 is a tripwire, and a tripwire nobody checks is decoration. Adding a
-    // thirteenth command is the moment to ask whether the frontend is reaching
+    // command is the moment to ask whether the frontend is reaching
     // for something the backend should be deciding.
     expect(total).toBeLessThan(CONTRACT_LIMIT);
   });
 
-  it('declares exactly the three Go-pushed events', () => {
-    expect([...CONTRACT.events]).toEqual([
-      'plan:changed',
-      'session:tick',
-      'reconcile:drift',
-    ]);
+  it('declares exactly the two Go-pushed events', () => {
+    expect([...CONTRACT.events]).toEqual(['plan:changed', 'reconcile:drift']);
   });
 
   it('is implemented in full by the mock', () => {
@@ -115,14 +112,6 @@ describe('the mock behaves like the bridge', () => {
     const second = await mock.getPlan();
     expect(second.items[0].text).not.toBe('mutated by the caller');
   });
-
-  it('remembers a saved position and reports none before one is saved', async () => {
-    const mock = new MockIPC();
-    expect((await mock.getPosition(1)).page).toBeNull();
-
-    await mock.savePosition(1, 41);
-    expect((await mock.getPosition(1)).page).toBe(41);
-  });
 });
 
 describe('the fixture carries the awkward cases', () => {
@@ -151,14 +140,5 @@ describe('the fixture carries the awkward cases', () => {
 
     expect(failing, 'fixture has no failing check - drift would never be seen').toBeDefined();
     expect(failing!.detail).not.toBe('');
-  });
-
-  it('includes an unmeasured budget period', async () => {
-    const budget = await new MockIPC().getBudgetStatus();
-    const unmeasured = budget.periods.find((p) => !p.measured);
-
-    expect(unmeasured, 'fixture has no unmeasured period').toBeDefined();
-    // Null, not zero. A period nobody recorded is not a period of no work.
-    expect(unmeasured!.spentHours).toBeNull();
   });
 });

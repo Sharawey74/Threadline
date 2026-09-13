@@ -11,7 +11,7 @@ import (
 // Artifact is a file the app has seen.
 //
 // The id is what the frontend holds and sends back, so it must survive a
-// rescan: a fresh id every scan would break every stored position and every
+// rescan: a fresh id every scan would break every open tab and every
 // open pane the moment a file was added to a folder. The path is the identity;
 // the id is a stable handle to it.
 type Artifact struct {
@@ -97,9 +97,8 @@ func (s *Store) ArtifactsUnder(prefix string) ([]Artifact, error) {
 
 // MarkArtifactMissing records that a file is no longer on disk.
 //
-// A flag, never a delete — the same reasoning as an orphaned anchor. The hours
-// recorded against a document were really spent, and a file can come back:
-// renamed, restored, or a folder remounted.
+// A flag, never a delete — the same reasoning as an orphaned anchor. A file
+// can come back: renamed, restored, or a folder remounted.
 func (s *Store) MarkArtifactMissing(id int64, now time.Time) error {
 	_, err := s.db.Exec(
 		`UPDATE artifact SET status = 'missing', last_seen = ? WHERE id = ?`, now.Unix(), id)

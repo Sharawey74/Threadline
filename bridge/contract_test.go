@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -51,6 +52,43 @@ func TestContractMatchesTheFrontend(t *testing.T) {
 	}
 }
 
+// contractSize is the contract after the 9 Sep 2026 reduction removed the five
+// commands that observed the user. Growing it is allowed; doing so silently is
+// not, so a change here has to be a deliberate edit to this number.
+const contractSize = 10
+
+func TestContractIsTenCommands(t *testing.T) {
+	bound := boundCommands()
+	if len(bound) != contractSize {
+		t.Errorf("%d commands bound, want %d: %v", len(bound), contractSize, bound)
+	}
+}
+
+// Deleted rather than left unwired. Each one existed to measure the user, which
+// C11 forbids; a stub still bound would be an invitation to fill it back in.
+var observationCommands = []string{
+	"StartSession", "EndSession", "GetBudgetStatus", "SavePosition", "GetPosition",
+}
+
+func TestObservationCommandsAreGone(t *testing.T) {
+	bound := boundCommands()
+	src := frontendContractSource(t)
+
+	for _, name := range observationCommands {
+		if slices.Contains(bound, name) {
+			t.Errorf("%s is still bound on App", name)
+		}
+		// Anywhere in index.ts, in any spelling. CONTRACT and interface IPC are
+		// separate lists, and TypeScript can declare a member half a dozen ways
+		// (optional, readonly, quoted, generic, a function-typed property, two
+		// on a line). Parsing those forms is a race against syntax; the
+		// criterion is that the name is not declared in the file at all.
+		if regexp.MustCompile(`(?i)\b` + name + `\b`).MatchString(src) {
+			t.Errorf("%s is still declared in frontend/src/ipc/index.ts", name)
+		}
+	}
+}
+
 func TestContractStaysUnderTheC2Ceiling(t *testing.T) {
 	bound := boundCommands()
 
@@ -81,7 +119,7 @@ func TestCommandsReturnOnlyAnError(t *testing.T) {
 		// ChooseCareerRoot returns the chosen path so the caller knows whether
 		// the dialog was cancelled. Everything else returning a value is a
 		// command that has quietly become a query.
-		if out > 1 && m.Name != "ChooseCareerRoot" && m.Name != "StartSession" {
+		if out > 1 && m.Name != "ChooseCareerRoot" {
 			t.Errorf("%s returns %d values; a command should return only an error", m.Name, out)
 		}
 	}
@@ -126,7 +164,8 @@ func boundCommands() []string {
 	return out
 }
 
-var contractEntryRe = regexp.MustCompile(`'([a-zA-Z]+)'`)
+// Either quote style, so a reformat to double quotes cannot hide an entry.
+var contractEntryRe = regexp.MustCompile(`['"]([a-zA-Z]+)['"]`)
 
 // frontendContract reads the command names the frontend declares.
 //
@@ -156,6 +195,23 @@ func frontendContract(t *testing.T) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// frontendContractSource returns frontend/src/ipc/index.ts as text.
+func frontendContractSource(t *testing.T) string {
+	t.Helper()
+
+	path := filepath.Join("..", "frontend", "src", "ipc", "index.ts")
+	src, err := os.ReadFile(path) // #nosec G304 -- a fixed path inside the repo
+	if err != nil {
+		t.Fatalf("read the frontend contract: %v", err)
+	}
+	// Guards the scan itself: a moved or emptied file would make "no deleted
+	// name found" true for the wrong reason.
+	if !strings.Contains(string(src), "export interface IPC {") {
+		t.Fatal("frontend/src/ipc/index.ts no longer declares interface IPC - the scan would prove nothing")
+	}
+	return string(src)
 }
 
 func extractBlock(t *testing.T, src, name string) string {

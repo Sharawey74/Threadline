@@ -103,6 +103,15 @@ func TestIsPlanFile(t *testing.T) {
 	}
 }
 
+// The other tests build their fixtures from PlanFileName, so they would pass
+// whatever it held. This pins the name the user's real file has, on every OS -
+// the case-insensitive test below skips everywhere but Windows.
+func TestPlanFileNameIsRoadmapChecklist(t *testing.T) {
+	if PlanFileName != "Roadmap_Checklist.md" {
+		t.Errorf("PlanFileName = %q, want Roadmap_Checklist.md", PlanFileName)
+	}
+}
+
 // Windows filesystems are case-insensitive: "roadmap_checklist.md" and
 // "Roadmap_Checklist.md" are the
 // same file. Treating them as different would leave the plan file writable
@@ -116,6 +125,21 @@ func TestIsPlanFileIgnoresCase(t *testing.T) {
 
 	if !r.IsPlanFile(filepath.Join(dir, "roadmap_checklist.md")) {
 		t.Error("a differently-cased plan file was treated as an ordinary document")
+	}
+}
+
+// On Windows, resolving a path already corrects its casing, so the test above
+// passes without reaching the case-insensitive comparison at all. Before the
+// plan file exists nothing can be resolved, and only that comparison decides -
+// which also makes this test run, and mean something, on every platform.
+func TestIsPlanFileComparesUnresolvedPathsIgnoringCase(t *testing.T) {
+	r := open(t, t.TempDir())
+
+	if !r.IsPlanFile(filepath.Join(r.Dir(), "roadmap_checklist.md")) {
+		t.Error("a differently-cased plan path was not recognised before the file exists")
+	}
+	if r.IsPlanFile(filepath.Join(r.Dir(), "roadmap_checklist.txt")) {
+		t.Error("a different file name was treated as the plan file")
 	}
 }
 

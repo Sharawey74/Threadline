@@ -11,7 +11,7 @@ function renderLayout(props: { railCollapsed?: boolean; planCollapsed?: boolean 
       document={<span>document content</span>}
       rail={<span>rail content</span>}
       viewer={<span>viewer content</span>}
-      plan={<textarea aria-label="Session note" />}
+      plan={<textarea aria-label="Note" />}
       status={<span>status content</span>}
       {...props}
     />,
@@ -46,7 +46,7 @@ describe('Layout', () => {
   it('shows the plan beside the viewer rather than instead of it', () => {
     renderLayout();
     expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
-    expect(screen.getByLabelText('Session note')).toBeTruthy();
+    expect(screen.getByLabelText('Note')).toBeTruthy();
   });
 
   describe('reading mode', () => {

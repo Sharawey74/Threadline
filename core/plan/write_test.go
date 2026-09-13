@@ -220,7 +220,7 @@ func TestDerivedFieldsSurviveATick(t *testing.T) {
 }
 
 // TEST 6 - anchors survive the write. If they did not, ticking a box would
-// detach the hours recorded against it.
+// detach the history stored against it.
 func TestAnchorsSurviveATick(t *testing.T) {
 	path, r := writable(t)
 	before := ParseDocument(string(read(t, path)), r)

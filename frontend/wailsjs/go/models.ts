@@ -153,27 +153,6 @@ export namespace plan {
 
 }
 
-export namespace store {
-	
-	export class Position {
-	    artifactId: number;
-	    page?: number;
-	    scrollPct?: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new Position(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.artifactId = source["artifactId"];
-	        this.page = source["page"];
-	        this.scrollPct = source["scrollPct"];
-	    }
-	}
-
-}
-
 export namespace workspace {
 	
 	export class Artifact {
@@ -196,59 +175,6 @@ export namespace workspace {
 	        this.isPlanFile = source["isPlanFile"];
 	    }
 	}
-	export class BudgetPeriod {
-	    section: string;
-	    allocatedHours: number;
-	    spentHours?: number;
-	    measured: boolean;
-	
-	    static createFrom(source: any = {}) {
-	        return new BudgetPeriod(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.section = source["section"];
-	        this.allocatedHours = source["allocatedHours"];
-	        this.spentHours = source["spentHours"];
-	        this.measured = source["measured"];
-	    }
-	}
-	export class Budget {
-	    allocatedHours: number;
-	    spentHours?: number;
-	    periods: BudgetPeriod[];
-	
-	    static createFrom(source: any = {}) {
-	        return new Budget(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.allocatedHours = source["allocatedHours"];
-	        this.spentHours = source["spentHours"];
-	        this.periods = this.convertValues(source["periods"], BudgetPeriod);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
-	
 	export class Content {
 	    artifactId: number;
 	    kind: string;

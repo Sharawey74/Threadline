@@ -87,32 +87,6 @@ export interface Check {
   detail: string;
 }
 
-export interface Budget {
-  /** Declared in the plan file. */
-  allocatedHours: number;
-  /**
-   * Measured from recorded sessions. Null means not measured — which must be
-   * displayed as "not measured", never as zero (C5).
-   */
-  spentHours: number | null;
-  periods: BudgetPeriod[];
-}
-
-export interface BudgetPeriod {
-  section: string;
-  allocatedHours: number;
-  spentHours: number | null;
-  /** False when no session data covers this period at all. */
-  measured: boolean;
-}
-
-/** Where the user stopped in a document. */
-export interface Position {
-  artifactId: number;
-  page: number | null;
-  scrollPct: number | null;
-}
-
 export interface Content {
   artifactId: number;
   kind: 'markdown' | 'pdf' | 'text';
@@ -120,12 +94,8 @@ export interface Content {
   body: string;
 }
 
-export type SessionId = number;
-
-export type EndReason = 'switch' | 'idle' | 'app_close' | 'manual';
-
 /** Events Go pushes to the frontend. */
-export type EventName = 'plan:changed' | 'session:tick' | 'reconcile:drift';
+export type EventName = 'plan:changed' | 'reconcile:drift';
 
 /**
  * Whether the app has a career folder yet.

@@ -8,14 +8,14 @@ import (
 )
 
 // Line numbers are not identity. Edit line 20 and every item below it moves,
-// orphaning its stored sessions and hours. An anchor is identity derived from
+// orphaning its stored history. An anchor is identity derived from
 // the text itself, so stored history survives the file being edited.
 //
 //	anchor = sha256(role ‖ section ‖ normalised text)[:16]
 //
 // Hours are stripped before hashing: re-estimating a task from 15h to 20h is
 // not a different task, and re-anchoring on every re-estimate would detach the
-// hours already recorded against it.
+// history already stored against it.
 func Anchor(role Role, section, text string) string {
 	sum := sha256.Sum256([]byte(string(role) + "\x00" + section + "\x00" + anchorText(text)))
 	return hex.EncodeToString(sum[:])[:16]

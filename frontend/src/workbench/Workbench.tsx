@@ -6,7 +6,6 @@ import { ipc } from '../ipc';
 import type { Artifact, Item, Plan } from '../ipc';
 import { Checklist } from '../plan/Checklist';
 import { MarkdownViewer } from '../viewers/MarkdownViewer';
-import { PdfViewer } from '../viewers/PdfViewer';
 import { Explorer } from './Explorer';
 import { FirstRun } from './FirstRun';
 import { Layout } from './Layout';
@@ -424,7 +423,7 @@ function NoteBox() {
   return (
     <textarea
       className="wb-note"
-      aria-label="Session note"
+      aria-label="Note"
       placeholder="What are you working on?"
       rows={3}
       value={text}
@@ -450,18 +449,22 @@ function ChecklistPane({
 }
 
 function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }) {
+  // Checked before anything is read. Threadline renders no PDF, so fetching one
+  // would base64 a whole study guide across the bridge to display nothing.
+  if (artifact.ext.toLowerCase() === '.pdf') {
+    return (
+      <Empty
+        title={`${artifact.title} is a PDF`}
+        hint="Threadline does not render PDFs. Open it in Edge, which can annotate it."
+      />
+    );
+  }
+  return <DocumentPane artifact={artifact} mode={mode} />;
+}
+
+function DocumentPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }) {
   const load = useCallback(() => ipc().readArtifact(artifact.id), [artifact.id]);
   const content = useAsync(load);
-
-  const savePosition = useCallback(
-    (page: number) => {
-      void ipc().savePosition(artifact.id, page);
-    },
-    [artifact.id],
-  );
-
-  const loadPosition = useCallback(() => ipc().getPosition(artifact.id), [artifact.id]);
-  const position = useAsync(loadPosition);
 
   const saveContent = useCallback(
     (body: string) => ipc().writeArtifact(artifact.id, body),
@@ -475,25 +478,16 @@ function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }
       errorTitle={`Could not open ${artifact.title}`}
       emptyTitle="This file is empty"
     >
-      {(c) =>
-        c.kind === 'pdf' ? (
-          <PdfViewer
-            data={c.body}
-            initialPage={position.status === 'ready' ? position.data.page : null}
-            onPageChange={savePosition}
-            title={artifact.title}
-          />
-        ) : (
-          <MarkdownViewer
-            source={c.body}
-            title={artifact.title}
-            readOnly={artifact.isPlanFile}
-            mode={mode}
-            readOnlyReason={artifact.isPlanFile ? PLAN_READ_ONLY : undefined}
-            onSave={artifact.isPlanFile ? undefined : saveContent}
-          />
-        )
-      }
+      {(c) => (
+        <MarkdownViewer
+          source={c.body}
+          title={artifact.title}
+          readOnly={artifact.isPlanFile}
+          mode={mode}
+          readOnlyReason={artifact.isPlanFile ? PLAN_READ_ONLY : undefined}
+          onSave={artifact.isPlanFile ? undefined : saveContent}
+        />
+      )}
     </AsyncView>
   );
 }

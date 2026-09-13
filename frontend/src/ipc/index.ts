@@ -5,24 +5,12 @@
 // mock with no Go present, and swapping Wails for something else touches this
 // directory and nothing more.
 //
-// The contract is frozen at 12: 7 queries with no side effects, 5 commands that
-// return only an error, plus 3 events. Over 20 means the boundary is leaking
-// (C2) — and adding a thirteenth here is the moment to ask whether the frontend
-// is reaching for something the backend should be deciding.
+// The contract is 10: 6 queries with no side effects, 4 commands that return
+// only an error, plus 2 events. Over 20 means the boundary is leaking (C2) —
+// and adding an eleventh here is the moment to ask whether the frontend is
+// reaching for something the backend should be deciding.
 
-import type {
-  Artifact,
-  Budget,
-  Check,
-  Content,
-  EndReason,
-  EventName,
-  Plan,
-  Position,
-  SessionId,
-  Topic,
-  Workspace,
-} from './types';
+import type { Artifact, Check, Content, EventName, Plan, Topic, Workspace } from './types';
 
 export type * from './types';
 
@@ -40,8 +28,6 @@ export interface IPC {
   getTopics(): Promise<Topic[]>;
   getMaterial(topicId: string): Promise<Artifact[]>;
   getReconciliation(): Promise<Check[]>;
-  getBudgetStatus(): Promise<Budget>;
-  getPosition(artifactId: number): Promise<Position>;
   /** Never rejects for the ordinary reason of having no folder yet. */
   getWorkspace(): Promise<Workspace>;
   readArtifact(artifactId: number): Promise<Content>;
@@ -56,9 +42,6 @@ export interface IPC {
    * The bridge rejects a plan-file id rather than trusting the caller.
    */
   writeArtifact(artifactId: number, content: string): Promise<void>;
-  savePosition(artifactId: number, page: number): Promise<void>;
-  startSession(scopeKind: string, scopeRef: string): Promise<SessionId>;
-  endSession(id: SessionId, note: string, reason: EndReason): Promise<void>;
   setCareerRoot(path: string): Promise<void>;
   /** Opens the native folder picker. Resolves to "" when cancelled. */
   chooseCareerRoot(): Promise<string>;
@@ -78,21 +61,11 @@ export const CONTRACT = {
     'getTopics',
     'getMaterial',
     'getReconciliation',
-    'getBudgetStatus',
-    'getPosition',
     'readArtifact',
     'getWorkspace',
   ],
-  commands: [
-    'tickItem',
-    'writeArtifact',
-    'savePosition',
-    'startSession',
-    'endSession',
-    'setCareerRoot',
-    'chooseCareerRoot',
-  ],
-  events: ['plan:changed', 'session:tick', 'reconcile:drift'],
+  commands: ['tickItem', 'writeArtifact', 'setCareerRoot', 'chooseCareerRoot'],
+  events: ['plan:changed', 'reconcile:drift'],
 } as const;
 
 /** The C2 ceiling. Exceeding it means the boundary is leaking. */

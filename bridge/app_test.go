@@ -19,15 +19,10 @@ func TestEveryCommandRefusesBeforeAFolderIsChosen(t *testing.T) {
 	}{
 		{"TickItem", func() error { return a.TickItem("anchor", true) }},
 		{"WriteArtifact", func() error { return a.WriteArtifact(1, "x") }},
-		{"SavePosition", func() error { return a.SavePosition(1, 1) }},
-		{"EndSession", func() error { return a.EndSession(1, "", "manual") }},
-		{"StartSession", func() error { _, err := a.StartSession("topic", "x"); return err }},
 		{"GetPlan", func() error { _, err := a.GetPlan(); return err }},
 		{"GetTopics", func() error { _, err := a.GetTopics(); return err }},
 		{"GetMaterial", func() error { _, err := a.GetMaterial("x"); return err }},
 		{"GetReconciliation", func() error { _, err := a.GetReconciliation(); return err }},
-		{"GetBudgetStatus", func() error { _, err := a.GetBudgetStatus(); return err }},
-		{"GetPosition", func() error { _, err := a.GetPosition(1); return err }},
 		{"ReadArtifact", func() error { _, err := a.ReadArtifact(1); return err }},
 	}
 
