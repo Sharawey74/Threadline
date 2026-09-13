@@ -24,8 +24,11 @@ var observationSymbol = regexp.MustCompile(
 // commands after the bridge stopped binding them.
 var scannedRoots = []string{"core", "bridge", filepath.Join("frontend", "src"), filepath.Join("frontend", "wailsjs")}
 
-// migrationsDir is exempt. Applied migrations are never edited, and 003 has to
-// name the tables it drops.
+// droppedTables are the only symbols a migration may still name. Applied
+// migrations are never edited: 001 created these tables and 003 drops them.
+// Nothing else is exempt, so a migration naming a deleted command still fails.
+var droppedTables = map[string]bool{"artifact_position": true, "item_session": true}
+
 var migrationsDir = filepath.Join("core", "store", "migrations")
 
 func TestNoObservationSymbolsRemainInSource(t *testing.T) {
@@ -37,22 +40,20 @@ func TestNoObservationSymbolsRemainInSource(t *testing.T) {
 				return err
 			}
 			rel, _ := filepath.Rel(repo, path)
-			if d.IsDir() {
-				if rel == migrationsDir {
-					return filepath.SkipDir
-				}
+			if d.IsDir() || isTestFile(d.Name()) {
 				return nil
 			}
-			if isTestFile(d.Name()) {
-				return nil
-			}
+			inMigrations := filepath.Dir(rel) == migrationsDir
 
 			src, err := os.ReadFile(path) // #nosec G304 -- walking the repo's own source tree
 			if err != nil {
 				return err
 			}
 			for i, line := range strings.Split(string(src), "\n") {
-				if m := observationSymbol.FindString(line); m != "" {
+				for _, m := range observationSymbol.FindAllString(line, -1) {
+					if inMigrations && droppedTables[m] {
+						continue
+					}
 					t.Errorf("%s:%d still references %s", filepath.ToSlash(rel), i+1, m)
 				}
 			}
