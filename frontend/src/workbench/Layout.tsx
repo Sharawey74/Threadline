@@ -6,8 +6,8 @@ import './layout.css';
  * The workbench shell: the frame that replaces four applications.
  *
  * It takes its regions as props and fetches nothing, so the frame stays
- * testable on its own and a region can be swapped — a PDF viewer for a
- * markdown one — without the frame knowing which it holds.
+ * testable on its own and a region can be swapped — a document for the
+ * settings pane — without the frame knowing which it holds.
  *
  *   ┌──────────────────────────────────────────────────────┐
  *   │ title      36  app, career root, view switch, window │
