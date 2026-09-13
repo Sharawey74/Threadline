@@ -455,7 +455,7 @@ function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }
     return (
       <Empty
         title={`${artifact.title} is a PDF`}
-        hint="Threadline does not render PDFs. Open it in Edge, which can annotate it. Opening it from here comes with outlines."
+        hint="Threadline does not render PDFs. Open it in Edge, which can annotate it."
       />
     );
   }
