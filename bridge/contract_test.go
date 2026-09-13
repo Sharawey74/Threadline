@@ -73,13 +73,20 @@ var observationCommands = []string{
 func TestObservationCommandsAreGone(t *testing.T) {
 	bound := boundCommands()
 	declared := frontendContract(t)
+	methods := frontendInterfaceMethods(t)
 
 	for _, name := range observationCommands {
 		if slices.Contains(bound, name) {
 			t.Errorf("%s is still bound on App", name)
 		}
 		if slices.Contains(declared, name) {
-			t.Errorf("%s is still declared in frontend/src/ipc/index.ts", name)
+			t.Errorf("%s is still listed in CONTRACT in frontend/src/ipc/index.ts", name)
+		}
+		// CONTRACT and the IPC interface are separate lists in the same file.
+		// A method put back on the interface, the mock and the bridge would
+		// type-check and pass the contract comparison without touching CONTRACT.
+		if slices.Contains(methods, name) {
+			t.Errorf("%s is still a method on interface IPC in frontend/src/ipc/index.ts", name)
 		}
 	}
 }
@@ -188,6 +195,40 @@ func frontendContract(t *testing.T) []string {
 		t.Fatal("parsed no commands from the frontend contract — the format changed")
 	}
 	sort.Strings(out)
+	return out
+}
+
+var interfaceMethodRe = regexp.MustCompile(`(?m)^\s+([a-z][A-Za-z]*)\(`)
+
+// frontendInterfaceMethods reads the method names declared on interface IPC,
+// in the exported Go spelling so they compare directly with boundCommands.
+func frontendInterfaceMethods(t *testing.T) []string {
+	t.Helper()
+
+	path := filepath.Join("..", "frontend", "src", "ipc", "index.ts")
+	src, err := os.ReadFile(path) // #nosec G304 -- a fixed path inside the repo
+	if err != nil {
+		t.Fatalf("read the frontend contract: %v", err)
+	}
+
+	body := string(src)
+	start := strings.Index(body, "export interface IPC {")
+	if start < 0 {
+		t.Fatal("no interface IPC in the frontend contract - the format changed")
+	}
+	end := strings.Index(body[start:], "\n}")
+	if end < 0 {
+		t.Fatal("unterminated interface IPC in the frontend contract")
+	}
+
+	var out []string
+	for _, m := range interfaceMethodRe.FindAllStringSubmatch(body[start:start+end], -1) {
+		out = append(out, strings.ToUpper(m[1][:1])+m[1][1:])
+	}
+	// Ten commands plus on(). Fewer means the parse, not the contract, broke.
+	if len(out) < contractSize {
+		t.Fatalf("parsed only %d methods from interface IPC: %v", len(out), out)
+	}
 	return out
 }
 
