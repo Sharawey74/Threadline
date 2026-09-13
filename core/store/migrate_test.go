@@ -1,21 +1,22 @@
 package store
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
 
-// Every V0 table from Schema §10 must exist after migration. A missing table
-// would not surface until the feature that needs it, which could be weeks.
+// Every table the stored model still needs must exist after migration. A
+// missing table would not surface until the feature that needs it, which could
+// be weeks.
 func TestMigrateCreatesEveryV0Table(t *testing.T) {
 	s := memStore(t)
 
 	want := []string{
-		"app_meta", "source_file", "artifact", "artifact_position",
-		"artifact_access", "session", "session_artifact",
-		"item_anchor", "item_anchor_history", "item_session",
+		"app_meta", "source_file", "artifact", "item_anchor", "item_anchor_history",
 	}
 	for _, table := range want {
 		var name string
@@ -167,16 +168,159 @@ func TestMigrationFilenamesAreWellFormedAndUnique(t *testing.T) {
 	}
 }
 
-// Foreign keys are off by default in SQLite. With them off, deleting a session
-// would silently orphan its rows instead of cascading.
+// Foreign keys are off by default in SQLite. With them off, an item's history
+// could point at an anchor that was never recorded.
 func TestForeignKeysAreEnforced(t *testing.T) {
 	s := memStore(t)
 
 	_, err := s.DB().Exec(
-		`INSERT INTO item_session(anchor, session_id, seconds) VALUES('nope', 999, 0)`)
+		`INSERT INTO item_anchor_history(anchor, event, at) VALUES('nope', 'created', 0)`)
 	if err == nil {
-		t.Fatal("inserted a row referencing a session that does not exist")
+		t.Fatal("inserted history for an anchor that does not exist")
 	}
+}
+
+// The tables and indexes migration 003 removes. Sessions, hours and page
+// positions were deleted from the product on 9 Sep 2026 (C11).
+var observationTables = []string{
+	"session", "artifact_access", "session_artifact", "item_session", "artifact_position",
+}
+
+var observationIndexes = []string{
+	"idx_session_scope", "idx_session_start", "idx_access_artifact",
+}
+
+// A real database upgrading to 003 has rows in these tables, joined by foreign
+// keys that are switched on. Dropping empty tables would pass while the upgrade
+// that actually runs on the user's machine failed.
+func TestMigration003DropsTheObservationTables(t *testing.T) {
+	db := databaseAtVersion2(t)
+	populateObservationTables(t, db)
+
+	if err := Migrate(db, ""); err != nil {
+		t.Fatalf("migrating a populated version-2 database: %v", err)
+	}
+
+	for _, name := range append(observationTables, observationIndexes...) {
+		var n int
+		if err := db.QueryRow(`SELECT count(*) FROM sqlite_master WHERE name = ?`, name).Scan(&n); err != nil {
+			t.Fatal(err)
+		}
+		if n != 0 {
+			t.Errorf("%s survived migration 003", name)
+		}
+	}
+}
+
+// Dropping the observation tables must cost the user nothing else: the files
+// Threadline has seen and each plan item's history carry across unchanged.
+func TestMigration003KeepsArtifactsAndAnchors(t *testing.T) {
+	db := databaseAtVersion2(t)
+	populateObservationTables(t, db)
+
+	kept := []string{"artifact", "item_anchor", "item_anchor_history"}
+	before := map[string][][]any{}
+	for _, table := range kept {
+		before[table] = allRows(t, db, table)
+		if len(before[table]) == 0 {
+			t.Fatalf("fixture put no rows in %s, so the test would prove nothing", table)
+		}
+	}
+
+	if err := Migrate(db, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, table := range kept {
+		if after := allRows(t, db, table); !reflect.DeepEqual(before[table], after) {
+			t.Errorf("%s changed across migration 003:\nbefore %v\nafter  %v", table, before[table], after)
+		}
+	}
+}
+
+// databaseAtVersion2 is the schema every existing install has before 003.
+func databaseAtVersion2(t *testing.T) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("sqlite", ":memory:?_pragma=foreign_keys(ON)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = db.Close() })
+
+	if err := ensureMetaTable(db); err != nil {
+		t.Fatal(err)
+	}
+	all, err := pendingMigrations(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range all {
+		if m.version > 2 {
+			break
+		}
+		if err := apply(db, m); err != nil {
+			t.Fatalf("migration %03d: %v", m.version, err)
+		}
+	}
+	return db
+}
+
+// populateObservationTables gives every table 003 touches at least one row,
+// linked the way real use links them.
+func populateObservationTables(t *testing.T, db *sql.DB) {
+	t.Helper()
+
+	for _, stmt := range []string{
+		`INSERT INTO artifact(id, kind, path, real_path, title, ext, first_seen, last_seen)
+		 VALUES(1, 'file', '06 - system design/redis.pdf', '06 - System Design/Redis.pdf', 'Redis', '.pdf', 100, 200)`,
+		`INSERT INTO item_anchor(anchor, role, section, text, first_seen, last_seen)
+		 VALUES('a1', 'curriculum', 'Study guide', 'Redis notes', 100, 200)`,
+		`INSERT INTO item_anchor_history(anchor, event, detail, at) VALUES('a1', 'created', '', 100)`,
+		`INSERT INTO session(id, scope_kind, scope_ref, started_at, ended_at, active_secs, note)
+		 VALUES(1, 'plan_item', 'a1', 100, 160, 60, 'stopped at eviction')`,
+		`INSERT INTO artifact_access(artifact_id, session_id, opened_at, seconds) VALUES(1, 1, 100, 60)`,
+		`INSERT INTO session_artifact(session_id, artifact_id, seconds) VALUES(1, 1, 60)`,
+		`INSERT INTO item_session(anchor, session_id, seconds) VALUES('a1', 1, 60)`,
+		`INSERT INTO artifact_position(artifact_id, page, updated_at) VALUES(1, 41, 160)`,
+	} {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("fixture: %v\n%s", err, stmt)
+		}
+	}
+}
+
+// allRows reads a whole table in a stable order, for before/after comparison.
+func allRows(t *testing.T, db *sql.DB, table string) [][]any {
+	t.Helper()
+
+	rows, err := db.Query(`SELECT * FROM ` + table + ` ORDER BY rowid`) // #nosec G202 -- table names are fixed in the test
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out [][]any
+	for rows.Next() {
+		vals := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, vals)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 func memStore(t *testing.T) *Store {
