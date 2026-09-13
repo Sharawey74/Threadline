@@ -78,9 +78,9 @@ export function FirstRun({ problem, onChosen }: FirstRunProps) {
         )}
 
         <p className="fr-note">
-          Threadline keeps its own notes and hours in a separate database. Your
-          files stay yours: the only change it ever makes is ticking a checkbox
-          in the plan file.
+          Threadline keeps its own small database of the files it has seen and
+          the history of each plan item. Your files stay yours: the only change it
+          ever makes is ticking a checkbox in the plan file.
         </p>
       </div>
     </div>
