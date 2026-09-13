@@ -14,20 +14,26 @@ import (
 // hold that deletion in place. A symbol that creeps back is the first line of a
 // feature the product decided not to have.
 
-// observationSymbol matches the deleted names as whole words, so the Wails
-// runtime's own WindowGetPosition is not mistaken for the removed GetPosition.
+// observationSymbol matches the deleted names as whole words and ignoring case.
+// Case matters because each command has two spellings: Go binds SavePosition
+// and the frontend calls savePosition. Whole words keep the Wails runtime's own
+// WindowGetPosition from being mistaken for the removed GetPosition. The bare
+// word "session" is included because the concept is gone, not just the symbols.
 var observationSymbol = regexp.MustCompile(
-	`\b(StartSession|EndSession|GetBudgetStatus|SavePosition|GetPosition|PdfViewer|pdfjs-dist|artifact_position|item_session)\b`)
+	`(?i)\b(StartSession|EndSession|GetBudgetStatus|SavePosition|GetPosition|PdfViewer|pdfjs-dist|sessions?|session_artifact|artifact_access|item_session|artifact_position)\b`)
 
 // scannedRoots are the directories that ship. frontend/wailsjs is included
 // because it is tracked and generated: stale bindings would still declare the
 // commands after the bridge stopped binding them.
 var scannedRoots = []string{"core", "bridge", filepath.Join("frontend", "src"), filepath.Join("frontend", "wailsjs")}
 
-// droppedTables are the only symbols a migration may still name. Applied
-// migrations are never edited: 001 created these tables and 003 drops them.
-// Nothing else is exempt, so a migration naming a deleted command still fails.
-var droppedTables = map[string]bool{"artifact_position": true, "item_session": true}
+// droppedTables are the only words a migration may still use. Applied
+// migrations are never edited: 001 created these five tables and 003 drops
+// them. Nothing else is exempt, so a migration naming a deleted command fails.
+var droppedTables = map[string]bool{
+	"session": true, "sessions": true, "session_artifact": true,
+	"artifact_access": true, "item_session": true, "artifact_position": true,
+}
 
 var migrationsDir = filepath.Join("core", "store", "migrations")
 
@@ -40,7 +46,15 @@ func TestNoObservationSymbolsRemainInSource(t *testing.T) {
 				return err
 			}
 			rel, _ := filepath.Rel(repo, path)
-			if d.IsDir() || isTestFile(d.Name()) {
+			if d.IsDir() {
+				// Go's testdata directories hold fixtures, not source: the plan
+				// fixture mirrors a real plan file that still says "session".
+				if d.Name() == "testdata" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if isTestFile(d.Name()) {
 				return nil
 			}
 			inMigrations := filepath.Dir(rel) == migrationsDir
@@ -51,7 +65,7 @@ func TestNoObservationSymbolsRemainInSource(t *testing.T) {
 			}
 			for i, line := range strings.Split(string(src), "\n") {
 				for _, m := range observationSymbol.FindAllString(line, -1) {
-					if inMigrations && droppedTables[m] {
+					if inMigrations && droppedTables[strings.ToLower(m)] {
 						continue
 					}
 					t.Errorf("%s:%d still references %s", filepath.ToSlash(rel), i+1, m)
