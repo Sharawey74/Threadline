@@ -6,22 +6,18 @@
 // be driven through real interactions before the bridge exists.
 //
 // The fixture mirrors the shape of the real plan file, including the parts that
-// are awkward: an item with low-confidence hours, one with no hours at all, a
-// failing reconciliation check, and an unmeasured budget period. A mock that
-// only returns clean data produces a UI that only works on clean data.
+// are awkward: an item with low-confidence hours, one with no hours at all,
+// and a failing reconciliation check. A mock that only returns clean data
+// produces a UI that only works on clean data.
 
 import type {
   Artifact,
-  Budget,
   Check,
   Content,
-  EndReason,
   EventName,
   Item,
   Plan,
-  Position,
   Section,
-  SessionId,
   Topic,
   Workspace,
 } from './types';
@@ -128,10 +124,8 @@ function delay<T>(value: T, ms = 40): Promise<T> {
 
 export class MockIPC implements IPC {
   private items = clone(items);
-  private positions = new Map<number, Position>();
   private contents = new Map<number, string>();
   private handlers = new Map<EventName, Set<() => void>>();
-  private nextSession = 1;
   // The mock starts configured: I3's tests drive the workbench itself, and
   // making every one of them choose a folder first would test the first-run
   // screen over and over instead.
@@ -168,18 +162,6 @@ export class MockIPC implements IPC {
     ]);
   }
 
-  getBudgetStatus(): Promise<Budget> {
-    return delay<Budget>({
-      allocatedHours: 73,
-      spentHours: 4.5,
-      periods: [
-        { section: 'Now -> Sun 30 Aug', allocatedHours: 19, spentHours: 4.5, measured: true },
-        // Never measured: the app was not running. Must not render as 0h.
-        { section: 'September', allocatedHours: 54, spentHours: null, measured: false },
-      ],
-    });
-  }
-
   getWorkspace(): Promise<Workspace> {
     return delay<Workspace>({
       careerRoot: this.careerRoot,
@@ -187,12 +169,6 @@ export class MockIPC implements IPC {
       hasPlan: this.careerRoot !== '',
       problem: '',
     });
-  }
-
-  getPosition(artifactId: number): Promise<Position> {
-    return delay(
-      this.positions.get(artifactId) ?? { artifactId, page: null, scrollPct: null },
-    );
   }
 
   readArtifact(artifactId: number): Promise<Content> {
@@ -231,19 +207,6 @@ export class MockIPC implements IPC {
       );
     }
     this.contents.set(artifactId, content);
-    return delay(undefined);
-  }
-
-  savePosition(artifactId: number, page: number): Promise<void> {
-    this.positions.set(artifactId, { artifactId, page, scrollPct: null });
-    return delay(undefined);
-  }
-
-  startSession(): Promise<SessionId> {
-    return delay(this.nextSession++);
-  }
-
-  endSession(_id: SessionId, _note: string, _reason: EndReason): Promise<void> {
     return delay(undefined);
   }
 

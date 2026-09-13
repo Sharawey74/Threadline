@@ -112,14 +112,6 @@ describe('the mock behaves like the bridge', () => {
     const second = await mock.getPlan();
     expect(second.items[0].text).not.toBe('mutated by the caller');
   });
-
-  it('remembers a saved position and reports none before one is saved', async () => {
-    const mock = new MockIPC();
-    expect((await mock.getPosition(1)).page).toBeNull();
-
-    await mock.savePosition(1, 41);
-    expect((await mock.getPosition(1)).page).toBe(41);
-  });
 });
 
 describe('the fixture carries the awkward cases', () => {
@@ -148,14 +140,5 @@ describe('the fixture carries the awkward cases', () => {
 
     expect(failing, 'fixture has no failing check - drift would never be seen').toBeDefined();
     expect(failing!.detail).not.toBe('');
-  });
-
-  it('includes an unmeasured budget period', async () => {
-    const budget = await new MockIPC().getBudgetStatus();
-    const unmeasured = budget.periods.find((p) => !p.measured);
-
-    expect(unmeasured, 'fixture has no unmeasured period').toBeDefined();
-    // Null, not zero. A period nobody recorded is not a period of no work.
-    expect(unmeasured!.spentHours).toBeNull();
   });
 });
