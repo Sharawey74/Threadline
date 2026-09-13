@@ -103,6 +103,15 @@ func TestIsPlanFile(t *testing.T) {
 	}
 }
 
+// The other tests build their fixtures from PlanFileName, so they would pass
+// whatever it held. This pins the name the user's real file has, on every OS -
+// the case-insensitive test below skips everywhere but Windows.
+func TestPlanFileNameIsRoadmapChecklist(t *testing.T) {
+	if PlanFileName != "Roadmap_Checklist.md" {
+		t.Errorf("PlanFileName = %q, want Roadmap_Checklist.md", PlanFileName)
+	}
+}
+
 // Windows filesystems are case-insensitive: "roadmap_checklist.md" and
 // "Roadmap_Checklist.md" are the
 // same file. Treating them as different would leave the plan file writable
