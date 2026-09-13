@@ -22,7 +22,7 @@ type Store struct {
 // WAL mode and synchronous=NORMAL come from Schema §8. A desktop app has one
 // user and one writer, so there is no contention to design around; WAL is here
 // because it survives a hard kill without corrupting the file, which matters
-// for N7 (a session must survive the process being killed).
+// for N7 (a tick must survive the process being killed).
 func Open(path string) (*Store, error) {
 	dsn := path
 	if path != "" {

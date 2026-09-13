@@ -33,7 +33,7 @@ const schemaVersion = "schema_version"
 // Migrate brings the database up to the latest schema version.
 //
 // Migrations are forward-only and numbered. There is no down-migration: this
-// database holds five months of the user's recorded hours, and a rollback path
+// database holds the user's plan-item history, and a rollback path
 // that is never exercised is a rollback path that does not work. Recovery is
 // the pre-migration copy, not a reverse script.
 func Migrate(db *sql.DB, dbPath string) error {

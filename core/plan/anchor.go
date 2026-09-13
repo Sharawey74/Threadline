@@ -8,7 +8,7 @@ import (
 )
 
 // Line numbers are not identity. Edit line 20 and every item below it moves,
-// orphaning its stored sessions and hours. An anchor is identity derived from
+// orphaning its stored history. An anchor is identity derived from
 // the text itself, so stored history survives the file being edited.
 //
 //	anchor = sha256(role ‖ section ‖ normalised text)[:16]

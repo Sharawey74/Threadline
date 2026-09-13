@@ -100,8 +100,8 @@ func TestMigrateIsIdempotent(t *testing.T) {
 	}
 }
 
-// This database holds months of recorded hours. A migration that runs without
-// a copy first is a migration that can destroy them.
+// This database holds the user's plan-item history. A migration that runs
+// without a copy first is a migration that can destroy it.
 func TestMigrateBacksUpBeforeChangingAnExistingDatabase(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "threadline.db")
