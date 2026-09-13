@@ -72,21 +72,19 @@ var observationCommands = []string{
 
 func TestObservationCommandsAreGone(t *testing.T) {
 	bound := boundCommands()
-	declared := frontendContract(t)
-	methods := frontendInterfaceMethods(t)
+	src := frontendContractSource(t)
 
 	for _, name := range observationCommands {
 		if slices.Contains(bound, name) {
 			t.Errorf("%s is still bound on App", name)
 		}
-		if slices.Contains(declared, name) {
-			t.Errorf("%s is still listed in CONTRACT in frontend/src/ipc/index.ts", name)
-		}
-		// CONTRACT and the IPC interface are separate lists in the same file.
-		// A method put back on the interface, the mock and the bridge would
-		// type-check and pass the contract comparison without touching CONTRACT.
-		if slices.Contains(methods, name) {
-			t.Errorf("%s is still a method on interface IPC in frontend/src/ipc/index.ts", name)
+		// Anywhere in index.ts, in any spelling. CONTRACT and interface IPC are
+		// separate lists, and TypeScript can declare a member half a dozen ways
+		// (optional, readonly, quoted, generic, a function-typed property, two
+		// on a line). Parsing those forms is a race against syntax; the
+		// criterion is that the name is not declared in the file at all.
+		if regexp.MustCompile(`(?i)\b` + name + `\b`).MatchString(src) {
+			t.Errorf("%s is still declared in frontend/src/ipc/index.ts", name)
 		}
 	}
 }
@@ -199,15 +197,8 @@ func frontendContract(t *testing.T) []string {
 	return out
 }
 
-// A member of interface IPC in any declaration form TypeScript allows: a method
-// `name(`, an optional method `name?(`, a generic `name<T>(`, or a
-// function-typed property `name: (`. A narrower pattern would let a deleted
-// command back in through the form it does not recognise.
-var interfaceMethodRe = regexp.MustCompile(`(?m)^\s+([a-zA-Z][A-Za-z0-9]*)\s*\??\s*[(<:]`)
-
-// frontendInterfaceMethods reads the method names declared on interface IPC,
-// in the exported Go spelling so they compare directly with boundCommands.
-func frontendInterfaceMethods(t *testing.T) []string {
+// frontendContractSource returns frontend/src/ipc/index.ts as text.
+func frontendContractSource(t *testing.T) string {
 	t.Helper()
 
 	path := filepath.Join("..", "frontend", "src", "ipc", "index.ts")
@@ -215,26 +206,12 @@ func frontendInterfaceMethods(t *testing.T) []string {
 	if err != nil {
 		t.Fatalf("read the frontend contract: %v", err)
 	}
-
-	body := string(src)
-	start := strings.Index(body, "export interface IPC {")
-	if start < 0 {
-		t.Fatal("no interface IPC in the frontend contract - the format changed")
+	// Guards the scan itself: a moved or emptied file would make "no deleted
+	// name found" true for the wrong reason.
+	if !strings.Contains(string(src), "export interface IPC {") {
+		t.Fatal("frontend/src/ipc/index.ts no longer declares interface IPC - the scan would prove nothing")
 	}
-	end := strings.Index(body[start:], "\n}")
-	if end < 0 {
-		t.Fatal("unterminated interface IPC in the frontend contract")
-	}
-
-	var out []string
-	for _, m := range interfaceMethodRe.FindAllStringSubmatch(body[start:start+end], -1) {
-		out = append(out, strings.ToUpper(m[1][:1])+m[1][1:])
-	}
-	// Ten commands plus on(). Fewer means the parse, not the contract, broke.
-	if len(out) < contractSize {
-		t.Fatalf("parsed only %d methods from interface IPC: %v", len(out), out)
-	}
-	return out
+	return string(src)
 }
 
 func extractBlock(t *testing.T, src, name string) string {
