@@ -128,6 +128,21 @@ func TestIsPlanFileIgnoresCase(t *testing.T) {
 	}
 }
 
+// On Windows, resolving a path already corrects its casing, so the test above
+// passes without reaching the case-insensitive comparison at all. Before the
+// plan file exists nothing can be resolved, and only that comparison decides -
+// which also makes this test run, and mean something, on every platform.
+func TestIsPlanFileComparesUnresolvedPathsIgnoringCase(t *testing.T) {
+	r := open(t, t.TempDir())
+
+	if !r.IsPlanFile(filepath.Join(r.Dir(), "roadmap_checklist.md")) {
+		t.Error("a differently-cased plan path was not recognised before the file exists")
+	}
+	if r.IsPlanFile(filepath.Join(r.Dir(), "roadmap_checklist.txt")) {
+		t.Error("a different file name was treated as the plan file")
+	}
+}
+
 // A junction or OneDrive folder gives the same file two paths. Comparing
 // unresolved strings would let the plan file look like an ordinary document
 // under its other name - and therefore be writable.
