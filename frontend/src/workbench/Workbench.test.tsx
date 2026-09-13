@@ -11,9 +11,13 @@ beforeEach(() => {
   setIPC(new MockIPC());
 });
 
-/** Fails on "session" anywhere a user could read or hear it. */
+/**
+ * Fails on "session" anywhere a user could read or hear it, and on an elapsed
+ * time such as 24:18 - the figure a session timer would put on screen (C5).
+ */
 function expectNoSessionWording() {
   expect(document.body.textContent).not.toMatch(/session/i);
+  expect(document.body.textContent).not.toMatch(/\d+:\d\d/);
   for (const el of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
     for (const attr of ['aria-label', 'title', 'placeholder']) {
       expect(el.getAttribute(attr) ?? '').not.toMatch(/session/i);
@@ -173,6 +177,9 @@ describe('the workbench', () => {
     expectNoSessionWording();
 
     await user.click(screen.getByRole('button', { name: 'Settings' }));
+    // Without this the second check could pass against a Settings pane that
+    // never opened.
+    expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
     expectNoSessionWording();
   });
 
