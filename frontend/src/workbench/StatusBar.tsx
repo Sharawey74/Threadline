@@ -13,12 +13,11 @@ import './statusbar.css';
  * it was being computed correctly and thrown away.
  *
  * It goes here rather than in a pane of its own because drift is context for
- * what you are about to do, not a report you make a trip to read. The full
- * thirteen live on the Hours view.
+ * what you are about to do, not a report you make a trip to read.
  */
 export interface StatusBarProps {
   checks: PlanCheck[] | null;
-  /** Where the open document is, e.g. "Page 4 of 102". Absent when nothing is open. */
+  /** Where the open document is, e.g. its path. Absent when nothing is open. */
   position?: string;
   /** Shown when a write is in flight or has just landed. */
   saveState?: string;

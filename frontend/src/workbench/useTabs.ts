@@ -35,8 +35,7 @@ export function useTabs(): Tabs {
 
   const openTab = useCallback((artifact: Artifact) => {
     // Opening something already open focuses it. Two tabs for one file would
-    // let its scroll position and page differ between them, and the position
-    // is stored per artifact, not per tab.
+    // show two copies that can drift apart - edited in one, stale in the other.
     setOpen((prev) => (prev.some((a) => a.id === artifact.id) ? prev : [...prev, artifact]));
     setActiveId(artifact.id);
   }, []);

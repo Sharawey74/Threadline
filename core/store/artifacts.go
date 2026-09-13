@@ -97,9 +97,8 @@ func (s *Store) ArtifactsUnder(prefix string) ([]Artifact, error) {
 
 // MarkArtifactMissing records that a file is no longer on disk.
 //
-// A flag, never a delete — the same reasoning as an orphaned anchor. The hours
-// recorded against a document were really spent, and a file can come back:
-// renamed, restored, or a folder remounted.
+// A flag, never a delete — the same reasoning as an orphaned anchor. A file
+// can come back: renamed, restored, or a folder remounted.
 func (s *Store) MarkArtifactMissing(id int64, now time.Time) error {
 	_, err := s.db.Exec(
 		`UPDATE artifact SET status = 'missing', last_seen = ? WHERE id = ?`, now.Unix(), id)

@@ -59,7 +59,7 @@ func (s *Store) Anchors() ([]plan.AnchorState, error) {
 
 // MarkOrphaned records that an anchor is no longer in the file.
 //
-// It is a flag, never a delete. The hours behind it were really spent, and the
+// It is a flag, never a delete. Its history is real, and the
 // user may simply have reworded something - Schema §5: the store never destroys
 // history because a file changed.
 func (s *Store) MarkOrphaned(anchor string, now time.Time) error {
