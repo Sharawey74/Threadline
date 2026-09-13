@@ -81,8 +81,8 @@ export function Settings({ careerRoot, theme, onToggleTheme, onRootChanged }: Se
       <section className="se-block">
         <h2 className="se-head">Database</h2>
         <p className="se-note">
-          Sessions, hours, page positions and notes — the things a file cannot hold. Delete it and
-          you lose that history and nothing else; your files are untouched.
+          The files it has seen and the history of each plan item — the things a file cannot hold.
+          Delete it and you lose that history and nothing else; your files are untouched.
         </p>
         {/*
           The path is stated rather than opened. A "Show in Explorer" button
