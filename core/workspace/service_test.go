@@ -175,7 +175,7 @@ func TestPlanFileRefusalDoesNotTrustTheCaller(t *testing.T) {
 
 	// A second registration under a differently-cased path: on Windows this is
 	// the same file reached by another name.
-	a, err := svc.register("tasks.md")
+	a, err := svc.register("roadmap_checklist.md")
 	if err != nil {
 		t.Skipf("cannot register the alternate casing here: %v", err)
 	}
