@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -51,6 +52,38 @@ func TestContractMatchesTheFrontend(t *testing.T) {
 	}
 }
 
+// contractSize is the contract after the 9 Sep 2026 reduction removed the five
+// commands that observed the user. Growing it is allowed; doing so silently is
+// not, so a change here has to be a deliberate edit to this number.
+const contractSize = 10
+
+func TestContractIsTenCommands(t *testing.T) {
+	bound := boundCommands()
+	if len(bound) != contractSize {
+		t.Errorf("%d commands bound, want %d: %v", len(bound), contractSize, bound)
+	}
+}
+
+// Deleted rather than left unwired. Each one existed to measure the user, which
+// C11 forbids; a stub still bound would be an invitation to fill it back in.
+var observationCommands = []string{
+	"StartSession", "EndSession", "GetBudgetStatus", "SavePosition", "GetPosition",
+}
+
+func TestObservationCommandsAreGone(t *testing.T) {
+	bound := boundCommands()
+	declared := frontendContract(t)
+
+	for _, name := range observationCommands {
+		if slices.Contains(bound, name) {
+			t.Errorf("%s is still bound on App", name)
+		}
+		if slices.Contains(declared, name) {
+			t.Errorf("%s is still declared in frontend/src/ipc/index.ts", name)
+		}
+	}
+}
+
 func TestContractStaysUnderTheC2Ceiling(t *testing.T) {
 	bound := boundCommands()
 
@@ -81,7 +114,7 @@ func TestCommandsReturnOnlyAnError(t *testing.T) {
 		// ChooseCareerRoot returns the chosen path so the caller knows whether
 		// the dialog was cancelled. Everything else returning a value is a
 		// command that has quietly become a query.
-		if out > 1 && m.Name != "ChooseCareerRoot" && m.Name != "StartSession" {
+		if out > 1 && m.Name != "ChooseCareerRoot" {
 			t.Errorf("%s returns %d values; a command should return only an error", m.Name, out)
 		}
 	}
