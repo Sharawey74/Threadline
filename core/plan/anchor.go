@@ -15,7 +15,7 @@ import (
 //
 // Hours are stripped before hashing: re-estimating a task from 15h to 20h is
 // not a different task, and re-anchoring on every re-estimate would detach the
-// hours already recorded against it.
+// history already stored against it.
 func Anchor(role Role, section, text string) string {
 	sum := sha256.Sum256([]byte(string(role) + "\x00" + section + "\x00" + anchorText(text)))
 	return hex.EncodeToString(sum[:])[:16]

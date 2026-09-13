@@ -11,7 +11,7 @@ import (
 // Artifact is a file the app has seen.
 //
 // The id is what the frontend holds and sends back, so it must survive a
-// rescan: a fresh id every scan would break every stored position and every
+// rescan: a fresh id every scan would break every open tab and every
 // open pane the moment a file was added to a folder. The path is the identity;
 // the id is a stable handle to it.
 type Artifact struct {
