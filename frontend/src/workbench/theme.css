@@ -56,15 +56,16 @@
   --t9: #e879f9;
 
   /*
-   * Surfaces, back to front. Values from the design canvas, 8 Sep 2026.
-   * --bg-inset is the canvas's --sunk; --bg-raised is its --raised.
+   * The 8 Sep names, kept as aliases of the corrected layer above so every
+   * existing component moves to the new palette at once and the light theme
+   * only has to redefine the new tokens. New code uses the new names.
    */
-  --bg: #0f172a;
-  --bg-raised: #1b2336;
-  --bg-inset: #0b1120;
-  --bg-hover: #233047;
-  --border: #475569;
-  --border-strong: #64748b;
+  --bg: var(--ground);
+  --bg-raised: var(--card);
+  --bg-inset: var(--rail);
+  --bg-hover: var(--card-hi);
+  --border: var(--line-up);
+  --border-strong: var(--text3);
 
   /*
    * Text, by how much attention it deserves.
@@ -75,9 +76,9 @@
    * measured alternative was 3.59:1, which is a contrast failure dressed up as
    * a hierarchy. Two weights that pass beat three where one does not.
    */
-  --fg: #f8fafc;
-  --fg-muted: #94a3b8;
-  --fg-faint: #909bad;
+  --fg: var(--text);
+  --fg-muted: var(--text2);
+  --fg-faint: var(--text3);
 
   --accent: #22c55e;
   --accent-quiet: rgb(34 197 94 / 14%);
@@ -228,17 +229,6 @@
   --t7: #1d4ed8;
   --t8: #0f766e;
   --t9: #a21caf;
-
-  --bg: #f8fafc;
-  --bg-raised: #ffffff;
-  --bg-inset: #eef2f7;
-  --bg-hover: #e2e8f0;
-  --border: #cbd5e1;
-  --border-strong: #94a3b8;
-
-  --fg: #0f172a;
-  --fg-muted: #475569;
-  --fg-faint: #5b6675;
 
   /*
    * Darker than the canvas's #15803D, which measured 4.46:1 against
