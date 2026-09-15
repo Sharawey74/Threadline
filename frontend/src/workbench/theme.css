@@ -138,7 +138,12 @@
   /* Fixed chrome, pinned by the design canvas. --header-height is what the
      current single-bar layout uses; Wave B replaces it with the three below. */
   --header-height: 44px;
-  --titlebar-height: 36px;
+  --titlebar-height: 44px;
+
+  /* The Windows shell, 9 Sep 2026: the frame every screen sits in. */
+  --window-radius: 22px;
+  --iconrail-width: 72px;
+  --contextrail-width: 280px;
   --tabbar-height: 40px;
   --dochead-height: 52px;
   --statusbar-height: 32px;

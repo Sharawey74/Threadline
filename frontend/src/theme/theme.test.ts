@@ -117,6 +117,13 @@ describe('the design values', () => {
     }
   });
 
+  it('shell dimensions match the design', () => {
+    expect(dark['--window-radius']).toBe('22px');
+    expect(dark['--titlebar-height']).toBe('44px');
+    expect(dark['--iconrail-width']).toBe('72px');
+    expect(dark['--contextrail-width']).toBe('280px');
+  });
+
   it('brand button label is --void', () => {
     const rule = /\.btn-primary\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(rule, 'no .btn-primary rule in theme.css').not.toBe('');
