@@ -1,0 +1,78 @@
+/*
+ * The Windows shell: title bar, icon rail, context rail and the frame they sit
+ * in. Every value comes from a token in theme.css.
+ */
+
+/* ── Title bar ─────────────────────────────────────────────────────── */
+
+.sh-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--titlebar-height);
+  padding-left: var(--space-4);
+  background: var(--void);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+}
+
+.sh-brand {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sh-root {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--text3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-grow {
+  flex: 1;
+}
+
+.sh-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sh-winctl {
+  display: flex;
+  align-self: stretch;
+}
+
+/* Windows caption buttons: 46px wide, full bar height, close turns red. */
+.sh-winbtn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  padding: 0;
+  color: var(--text2);
+  background: transparent;
+  border: 0;
+}
+
+.sh-winbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sh-winbtn:hover {
+  color: var(--text);
+  background: var(--card);
+}
+
+.sh-winbtn-close:hover {
+  color: #ffffff;
+  background: #c42b1c;
+}
+
+.sh-winbtn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
