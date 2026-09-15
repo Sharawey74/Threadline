@@ -1,4 +1,4 @@
-import { Moon, PanelLeft, PanelRight, Settings as SettingsIcon, Sun } from 'lucide-react';
+import { Moon, PanelLeft, PanelRight, Sun } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAsync } from '../hooks/useAsync';
@@ -6,9 +6,13 @@ import { ipc } from '../ipc';
 import type { Artifact, Item, Plan } from '../ipc';
 import { Checklist } from '../plan/Checklist';
 import { MarkdownViewer } from '../viewers/MarkdownViewer';
+import { ContextRail } from '../shell/ContextRail';
+import type { Destination } from '../shell/IconRail';
+import { IconRail } from '../shell/IconRail';
+import { Shell } from '../shell/Shell';
+import { TitleBar } from '../shell/TitleBar';
 import { Explorer } from './Explorer';
 import { FirstRun } from './FirstRun';
-import { Layout } from './Layout';
 import { Palette } from './Palette';
 import { Settings } from './Settings';
 import { AsyncView, Empty } from './States';
@@ -70,11 +74,15 @@ export function Workbench() {
   const [palette, setPalette] = useState(false);
 
   /*
-   * Which view is showing. useState, not a router: there are no URLs, no back
-   * button and no deep links to support, and four views is well under the
-   * threshold at which a router would earn its dependency (View-Map).
+   * Where you are in the icon rail. useState, not a router: there are no URLs,
+   * no back button and no deep links to support, and five destinations is well
+   * under the threshold at which a router would earn its dependency (View-Map).
+   *
+   * The app opens on Files. Home is where it will open once Phase 9 gives Home
+   * something to say; opening on a placeholder would start every launch on a
+   * screen with nothing on it.
    */
-  const [view, setView] = useState<'workbench' | 'settings'>('workbench');
+  const [destination, setDestination] = useState<Destination>('files');
 
   // Flattened out of the rail's tree so the palette can reach a document
   // without the folder it lives in having to be expanded first.
@@ -85,8 +93,8 @@ export function Workbench() {
 
   const shortcuts = useMemo(
     () => ({
-      // Escape returns to the checklist without closing anything: coming back
-      // to what you were reading should not cost you the other tabs.
+      // Escape leaves the document without closing anything: coming back to
+      // what you were reading should not cost you the other tabs.
       Escape: tabs.blur,
       t: toggleTheme,
       r: () => {
@@ -96,7 +104,7 @@ export function Workbench() {
         setPalette(true);
       },
       ',': () => {
-        setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
+        setDestination((d) => (d === 'settings' ? 'files' : 'settings'));
       },
     }),
     [tabs.blur, toggleTheme],
@@ -125,6 +133,10 @@ export function Workbench() {
   }
 
   const active = tabs.active;
+  const root = ws.status === 'ready' ? ws.data.careerRoot : '';
+  const go = (d: Destination) => () => {
+    setDestination(d);
+  };
 
   return (
     <>
@@ -132,11 +144,14 @@ export function Workbench() {
         open={palette}
         onOpenChange={setPalette}
         files={openable}
-        onOpenFile={tabs.openTab}
+        onOpenFile={(file) => {
+          tabs.openTab(file);
+          setDestination('files');
+        }}
         actions={[
           {
             id: 'reading',
-            label: reading ? 'Show both panes' : 'Reading mode',
+            label: reading ? 'Show the material rail' : 'Reading mode',
             hint: 'R',
             run: () => {
               setReading((on) => !on);
@@ -148,20 +163,11 @@ export function Workbench() {
             hint: 'T',
             run: toggleTheme,
           },
-          {
-            id: 'checklist',
-            label: 'Go to the checklist',
-            hint: 'Esc',
-            run: tabs.blur,
-          },
-          {
-            id: 'settings',
-            label: view === 'settings' ? 'Back to the workbench' : 'Settings',
-            hint: ',',
-            run: () => {
-              setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
-            },
-          },
+          { id: 'home', label: 'Go to Home', run: go('home') },
+          { id: 'files', label: 'Go to Files', run: go('files') },
+          { id: 'checklist', label: 'Go to Plan', run: go('plan') },
+          { id: 'notes', label: 'Go to Notes', run: go('notes') },
+          { id: 'settings', label: 'Settings', hint: ',', run: go('settings') },
           {
             id: 'preview',
             label: 'View: Preview',
@@ -186,73 +192,112 @@ export function Workbench() {
         ]}
       />
 
-      <Layout
+      <Shell
         key={reloads}
-        railCollapsed={reading}
-        planCollapsed={reading}
+        label={LABELS[destination]}
         title={
-          <TitleBar
-            root={ws.status === 'ready' ? ws.data.careerRoot : ''}
-            settings={view === 'settings'}
-            onToggleSettings={() => {
-              setView((v) => (v === 'settings' ? 'workbench' : 'settings'));
-            }}
-            reading={reading}
-            onToggleReading={() => {
-              setReading((on) => !on);
-            }}
-            theme={theme}
-            onToggleTheme={toggleTheme}
+          <TitleBar root={root}>
+            {destination === 'files' && (
+              <button
+                type="button"
+                className="wb-icon-btn"
+                aria-pressed={reading}
+                // The name says what the control does, not what it is.
+                aria-label={
+                  reading ? 'Show the material rail' : 'Reading mode: collapse the material rail'
+                }
+                title={reading ? 'Show the material rail (R)' : 'Reading mode (R)'}
+                onClick={() => {
+                  setReading((on) => !on);
+                }}
+              >
+                {reading ? (
+                  <PanelLeft className="wb-icon" aria-hidden="true" />
+                ) : (
+                  <PanelRight className="wb-icon" aria-hidden="true" />
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              className="wb-icon-btn"
+              aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+              title="Toggle theme (T)"
+              onClick={toggleTheme}
+            >
+              {theme === 'dark' ? (
+                <Sun className="wb-icon" aria-hidden="true" />
+              ) : (
+                <Moon className="wb-icon" aria-hidden="true" />
+              )}
+            </button>
+          </TitleBar>
+        }
+        rail={<IconRail active={destination} onNavigate={setDestination} />}
+        context={
+          destination === 'files' ? (
+            <ContextRail label="Material" collapsed={reading}>
+              <AsyncView
+                state={tree}
+                loadingLabel="Reading the career folder…"
+                errorTitle="Could not read the career folder"
+                emptyTitle="No topic folders found"
+                emptyHint="Material lives under Study guided & notes."
+              >
+                {(t) => (
+                  <Explorer
+                    tree={t}
+                    openIds={tabs.open.map((a) => a.id)}
+                    activeId={active?.id ?? null}
+                    onOpen={tabs.openTab}
+                  />
+                )}
+              </AsyncView>
+            </ContextRail>
+          ) : undefined
+        }
+        status={
+          <StatusBar
+            checks={checks.status === 'ready' ? checks.data : null}
+            position={destination === 'files' ? active?.path : undefined}
           />
         }
-        tabs={
-          <TabBar
-            open={tabs.open}
-            activeId={active?.id ?? null}
-            onFocus={tabs.focusTab}
-            onClose={tabs.closeTab}
-          />
-        }
-        document={<DocumentHeader artifact={active} mode={viewMode} onMode={setViewMode} />}
-        rail={
-          <AsyncView
-            state={tree}
-            loadingLabel="Reading the career folder…"
-            errorTitle="Could not read the career folder"
-            emptyTitle="No topic folders found"
-            emptyHint="Material lives under Study guided & notes."
-          >
-            {(t) => (
-              <Explorer
-                tree={t}
-                openIds={tabs.open.map((a) => a.id)}
+      >
+        {destination === 'files' && (
+          <div className="wb-files">
+            {/* Issue #1: nothing is drawn for documents that are not open. The
+                tab row and document header arrive with the first document,
+                not as empty bands above an empty viewer on every launch. */}
+            {tabs.open.length > 0 && (
+              <TabBar
+                open={tabs.open}
                 activeId={active?.id ?? null}
-                onOpen={tabs.openTab}
+                onFocus={tabs.focusTab}
+                onClose={tabs.closeTab}
               />
             )}
-          </AsyncView>
-        }
-        viewer={
-          view === 'settings' ? (
-            <Settings
-              careerRoot={ws.status === 'ready' ? ws.data.careerRoot : ''}
-              theme={theme}
-              onToggleTheme={toggleTheme}
-              onRootChanged={() => {
-                setView('workbench');
-                setReloads((n) => n + 1);
-              }}
-            />
-          ) : active === null ? (
-            <Empty
-              title="Nothing open"
-              hint="Choose a document from the rail. The checklist is on the right."
-            />
-          ) : (
-            <ArtifactPane artifact={active} mode={viewMode} />
-          )
-        }
-        plan={
+            {active !== null && (
+              <div className="wb-dochead">
+                <DocumentHeader artifact={active} mode={viewMode} onMode={setViewMode} />
+              </div>
+            )}
+            <div className="wb-viewer">
+              {active === null ? (
+                <Empty
+                  title="Nothing open"
+                  hint="Choose a document from the material rail. Your checklist is under Plan."
+                />
+              ) : (
+                <ArtifactPane artifact={active} mode={viewMode} />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Issue #2: the checklist is a destination, not a permanent pane. At
+            400px beside a document its 80-120 character items wrapped to five
+            lines; here it has the main region's full width. */}
+        {destination === 'plan' && (
           <AsyncView
             key={planVersion}
             state={plan}
@@ -268,92 +313,46 @@ export function Workbench() {
               </div>
             )}
           </AsyncView>
-        }
-        status={
-          <StatusBar
-            checks={checks.status === 'ready' ? checks.data : null}
-            position={active?.path}
+        )}
+
+        {destination === 'settings' && (
+          <Settings
+            careerRoot={root}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            onRootChanged={() => {
+              setDestination('files');
+              setReloads((n) => n + 1);
+            }}
           />
-        }
-      />
+        )}
+
+        {destination === 'home' && (
+          <Empty
+            title="Home is not built yet"
+            hint="It will show where to continue. Until then, your material is under Files and your checklist under Plan."
+          />
+        )}
+
+        {destination === 'notes' && (
+          <Empty
+            title="Notes is not built yet"
+            hint="Quick capture and your notes arrive with the reader."
+          />
+        )}
+      </Shell>
     </>
   );
 }
 
-function TitleBar({
-  root,
-  settings,
-  onToggleSettings,
-  reading,
-  onToggleReading,
-  theme,
-  onToggleTheme,
-}: {
-  root: string;
-  settings: boolean;
-  onToggleSettings: () => void;
-  reading: boolean;
-  onToggleReading: () => void;
-  theme: string;
-  onToggleTheme: () => void;
-}) {
-  return (
-    <>
-      <span className="wb-brand">Threadline</span>
-      {/* The career root, always visible. The app is a lens over one folder,
-          and which folder is a fact you should never have to go and check. */}
-      <span className="wb-root" title={root}>
-        {root}
-      </span>
-
-      <span className="wb-grow" />
-
-      <button
-        type="button"
-        className="wb-icon-btn"
-        aria-pressed={reading}
-        // The name says what the control does, not what it is. "Reading mode"
-        // alone leaves a screen reader user to guess what pressing it changes.
-        aria-label={
-          reading ? 'Show the rail and plan panes' : 'Reading mode: collapse both side panes'
-        }
-        title={reading ? 'Show both panes (R)' : 'Reading mode (R)'}
-        onClick={onToggleReading}
-      >
-        {reading ? (
-          <PanelLeft className="wb-icon" aria-hidden="true" />
-        ) : (
-          <PanelRight className="wb-icon" aria-hidden="true" />
-        )}
-      </button>
-
-      <button
-        type="button"
-        className="wb-icon-btn"
-        aria-pressed={settings}
-        aria-label={settings ? 'Back to the workbench' : 'Settings'}
-        title="Settings (,)"
-        onClick={onToggleSettings}
-      >
-        <SettingsIcon className="wb-icon" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        className="wb-icon-btn"
-        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        title="Toggle theme (T)"
-        onClick={onToggleTheme}
-      >
-        {theme === 'dark' ? (
-          <Sun className="wb-icon" aria-hidden="true" />
-        ) : (
-          <Moon className="wb-icon" aria-hidden="true" />
-        )}
-      </button>
-    </>
-  );
-}
+/** The main region's name, for a screen reader, in each destination. */
+const LABELS: Record<Destination, string> = {
+  home: 'Home',
+  files: 'Files',
+  plan: 'Plan',
+  notes: 'Notes',
+  settings: 'Settings',
+};
 
 const PLAN_READ_ONLY =
   'The plan file changes only by ticking a checkbox, so that nothing else in it can move.';

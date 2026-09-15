@@ -119,28 +119,43 @@
   border-color: var(--border-strong);
 }
 
-/* ── Title bar ──────────────────────────────────────────────── */
+/* ── Files view ─────────────────────────────────────────────── */
 
-.wb-brand {
-  font-size: var(--step-0);
-  font-weight: 600;
-  flex: 0 0 auto;
+/*
+ * The tab row and the document header take space only while a document is
+ * open (issue #1), so this is a column whose fixed rows come and go and whose
+ * viewer takes the rest.
+ */
+.wb-files {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
-.wb-root {
-  /* The career root, always visible: the app is a lens over one folder, and
-     which folder should never be something you go and check. It truncates from
-     the left, because the end of a path identifies it and the start rarely does. */
+.wb-files > .tb {
+  flex: 0 0 var(--tabbar-height);
+  border-bottom: 1px solid var(--line);
+}
+
+.wb-dochead {
+  display: flex;
+  flex: 0 0 var(--dochead-height);
+  align-items: center;
+  gap: var(--space-3);
   min-width: 0;
-  font-family: var(--font-mono);
-  font-size: var(--step-micro);
-  color: var(--fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  direction: rtl;
-  text-align: left;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--line);
 }
+
+.wb-viewer {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── Title bar actions ──────────────────────────────────────── */
 
 .wb-grow {
   flex: 1 1 auto;
