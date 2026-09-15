@@ -14,10 +14,13 @@ import { describe, expect, it } from 'vitest';
 const frontend = resolve(__dirname, '..', '..');
 const src = join(frontend, 'src');
 
+/** Installed and built output: not source anyone writes. */
+const SKIP = new Set(['node_modules', 'dist']);
+
 function filesUnder(dir: string, match: (name: string) => boolean): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) return filesUnder(path, match);
+    if (statSync(path).isDirectory()) return SKIP.has(name) ? [] : filesUnder(path, match);
     return match(name) ? [path] : [];
   });
 }
@@ -64,7 +67,10 @@ function blocks(path: string): Block[] {
   return out;
 }
 
-const all = filesUnder(src, (name) => name.endsWith('.css')).flatMap(blocks);
+// Every stylesheet in the frontend, not only src/: one imported from outside
+// src/ ships just the same.
+const stylesheets = filesUnder(frontend, (name) => name.endsWith('.css'));
+const all = stylesheets.flatMap(blocks);
 
 const SURFACES = ['--void', '--ground', '--rail', '--card', '--card-hi'];
 const LINES = ['--line', '--line-up'];
@@ -77,6 +83,8 @@ const DIMENSIONS = [
   '--iconrail-width',
   '--contextrail-width',
 ];
+
+const AUDITED = [...THEMED, ...DIMENSIONS];
 
 const DARK = ':root';
 const LIGHT = ':root[data-theme="light"]';
@@ -137,6 +145,33 @@ describe('where the tokens live', () => {
         token,
       ).toEqual([`workbench/theme.css ${DARK}`]);
     }
+  });
+});
+
+describe('where the tokens can be set', () => {
+  // A CSS audit cannot see a value set elsewhere: an inline style in a
+  // component, a <style> in index.html. Outside theme.css an audited token may
+  // only be read, through var(); anything else is a second, unaudited value.
+  it('names an audited token outside theme.css only inside var()', () => {
+    const files = [
+      ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
+      join(frontend, 'index.html'),
+      ...stylesheets.filter((path) => !path.startsWith(src)),
+    ].filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css');
+
+    const offences: string[] = [];
+    for (const path of files) {
+      const text = readFileSync(path, 'utf8');
+      for (const token of AUDITED) {
+        const name = new RegExp(`(?<![A-Za-z0-9_-])${token}(?![A-Za-z0-9_-])`, 'g');
+        for (const m of text.matchAll(name)) {
+          if (!/var\(\s*$/.test(text.slice(0, m.index))) {
+            offences.push(`${relative(frontend, path)}: ${token} outside var()`);
+          }
+        }
+      }
+    }
+    expect(offences).toEqual([]);
   });
 });
 
@@ -216,22 +251,19 @@ describe('the design values', () => {
   // a second rule, a duplicate declaration or an @media variant would each be
   // a primary button the contrast check above never measured.
   it('brand button label is --void', () => {
-    const rules = all.filter((b) =>
-      b.context
-        .split(' > ')
-        .at(-1)!
-        .split(',')
-        .some((s) => s.trim() === '.btn-primary'),
-    );
+    // Any rule that mentions the class at all - descendant, compound, :hover,
+    // :where(), a theme-scoped variant - can restyle the button.
+    const rules = all.filter((b) => b.context.includes('btn-primary'));
     expect(rules.map((r) => `${r.file} ${r.context}`)).toEqual([
       'workbench/theme.css .btn-primary',
     ]);
 
-    const [rule] = rules;
-    expect(rule.decls.filter((d) => d.prop === 'color')).toEqual([
+    // And within it, anything that can change the label or the fill.
+    const paint = rules[0].decls.filter(
+      (d) => d.prop === 'color' || d.prop === 'all' || d.prop.startsWith('background'),
+    );
+    expect(paint).toEqual([
       { prop: 'color', value: 'var(--void)' },
-    ]);
-    expect(rule.decls.filter((d) => d.prop === 'background')).toEqual([
       { prop: 'background', value: 'var(--brand)' },
     ]);
   });
