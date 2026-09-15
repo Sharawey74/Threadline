@@ -227,8 +227,14 @@ describe('the workbench', () => {
       await railReady();
 
       expect(screen.queryByRole('tablist')).toBeNull();
-      expect(document.querySelector('.tb, .tb-empty, .wb-dochead')).toBeNull();
-      expect(screen.getByText('Nothing open')).toBeTruthy();
+
+      // Structure, not class names: the Files view holds one thing, the empty
+      // state. Any row drawn above it - under whatever class - is a second child.
+      const main = screen.getByRole('main', { name: 'Files' });
+      expect(main.children).toHaveLength(1);
+      const view = main.children[0];
+      expect(view.children, 'the Files view draws more than the empty state').toHaveLength(1);
+      expect(view.children[0].textContent).toContain('Nothing open');
     });
 
     // Issue #2: at 400px beside a document, plan items wrapped to five lines.
