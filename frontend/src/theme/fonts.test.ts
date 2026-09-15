@@ -54,7 +54,8 @@ describe('fonts', () => {
   // C6: a remote font does not fail loudly in a Wails window with no network.
   // The face silently never arrives and the fallback renders instead.
   it('no stylesheet references a remote URL', () => {
-    const fontsource = declared.filter((name) => name.startsWith('@fontsource/'));
+    // Both Fontsource scopes: @fontsource/* and @fontsource-variable/*.
+    const fontsource = declared.filter((name) => /^@fontsource[\w-]*\//.test(name));
     expect(fontsource.length, 'no @fontsource package is declared').toBeGreaterThan(0);
 
     // Every sheet each declared font package ships, not only the ones main.tsx
@@ -68,7 +69,9 @@ describe('fonts', () => {
       }),
     ];
 
-    const remote = /(?:url\(\s*['"]?|@import\s+(?:url\(\s*)?['"]?)\s*(?:https?:)?\/\//i;
+    // Any remote address at all, not a url() or @import of a particular shape:
+    // every syntax-based pattern had a spelling that slipped past it.
+    const remote = /https?:|\/\//i;
     for (const sheet of sheets) {
       expect(readFileSync(sheet, 'utf8'), `${sheet} loads something over the network`).not.toMatch(
         remote,
@@ -80,7 +83,9 @@ describe('fonts', () => {
       join(frontend, 'src'),
       (name) => /\.[jt]sx?$/.test(name) && name !== 'fonts.test.ts',
     ).flatMap((file) =>
-      [...readFileSync(file, 'utf8').matchAll(/['"`](@fontsource\/[^/'"`]+)/g)].map((m) => m[1]),
+      [...readFileSync(file, 'utf8').matchAll(/['"`](@fontsource[\w-]*\/[^/'"`]+)/g)].map(
+        (m) => m[1],
+      ),
     );
     expect(imported.filter((name) => !fontsource.includes(name))).toEqual([]);
   });
