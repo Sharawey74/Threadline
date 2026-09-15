@@ -15,6 +15,47 @@
 
 :root {
   /*
+   * The corrected design layer, 9 Sep 2026 (plans/UI-Design.html).
+   *
+   * Five surfaces, back to front, and two border weights. The old palette had
+   * three values within 12% of each other, which is why nothing could sit
+   * "above" anything.
+   */
+  --void: #08060f;
+  --ground: #0e0b1e;
+  --rail: #15112c;
+  --card: #1c1740;
+  --card-hi: #252050;
+  --line: #2c2757;
+  --line-up: #3d3670;
+
+  /*
+   * Text, three tiers. --text2 and --text3 are lifted from the drawn values:
+   * --text3 measured 2.90:1 on --card-hi as drawn. Shipped, the worst pairs
+   * are 8.84:1 and 4.84:1, and the tiers still separate at 1.83:1.
+   * theme.test.ts recomputes every pair.
+   */
+  --text: #f3f1ff;
+  --text2: #c9c3e2;
+  --text3: #948dba;
+
+  /* Violet is the brand and the action. A label on it is --void: --text on
+     --brand measured 3.90:1, --void measures 4.63:1. */
+  --brand: #7c5cff;
+
+  /* One hue per topic - the substitute for photography. Non-text marks, so
+     the floor is 3:1 against --card (WCAG 1.4.11). */
+  --t1: #f59e0b;
+  --t2: #22d3ee;
+  --t3: #a78bfa;
+  --t4: #fb7185;
+  --t5: #34d399;
+  --t6: #f97316;
+  --t7: #60a5fa;
+  --t8: #2dd4bf;
+  --t9: #e879f9;
+
+  /*
    * Surfaces, back to front. Values from the design canvas, 8 Sep 2026.
    * --bg-inset is the canvas's --sunk; --bg-raised is its --raised.
    */
@@ -153,6 +194,36 @@
 }
 
 :root[data-theme="light"] {
+  /*
+   * The design defines no light theme (decision A, 15 Sep 2026): these are
+   * derived to keep the same roles - five surfaces, three text tiers, one
+   * action colour, nine topic marks - and held to the same contrast floors by
+   * theme.test.ts. Cards sit lighter than the ground here, as paper does.
+   */
+  --void: #f6f4fd;
+  --ground: #efecf9;
+  --rail: #e8e4f5;
+  --card: #ffffff;
+  --card-hi: #f4f1fe;
+  --line: #ddd8ef;
+  --line-up: #c7c0e3;
+
+  --text: #15112c;
+  --text2: #3d3670;
+  --text3: #5e5690;
+
+  --brand: #5b3ad6;
+
+  --t1: #b45309;
+  --t2: #0e7490;
+  --t3: #7c3aed;
+  --t4: #be123c;
+  --t5: #047857;
+  --t6: #c2410c;
+  --t7: #1d4ed8;
+  --t8: #0f766e;
+  --t9: #a21caf;
+
   --bg: #f8fafc;
   --bg-raised: #ffffff;
   --bg-inset: #eef2f7;
@@ -223,4 +294,13 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * The primary action. Its label is --void, never --text: on --brand, --text
+ * measured 3.90:1 and --void 4.63:1 (theme.test.ts holds both themes to 4.5).
+ */
+.btn-primary {
+  color: var(--void);
+  background: var(--brand);
 }
