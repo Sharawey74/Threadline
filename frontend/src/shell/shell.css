@@ -204,3 +204,45 @@
   border: 1px solid var(--line-up);
   border-radius: 999px;
 }
+
+/* ── Frame ─────────────────────────────────────────────────────────── */
+
+/*
+ * The window's own rounded corners. The Wails window is frameless and
+ * transparent, so this radius is what the desktop sees.
+ */
+.sh {
+  display: grid;
+  grid-template-rows: var(--titlebar-height) minmax(0, 1fr) var(--statusbar-height);
+  height: 100%;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--window-radius);
+}
+
+.sh-body {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.sh-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ground);
+}
+
+.sh-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: 0 var(--space-4);
+  font-size: var(--step-micro);
+  color: var(--text2);
+  background: var(--void);
+  border-top: 1px solid var(--line);
+}
