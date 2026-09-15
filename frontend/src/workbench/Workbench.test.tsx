@@ -228,13 +228,23 @@ describe('the workbench', () => {
 
       expect(screen.queryByRole('tablist')).toBeNull();
 
-      // Structure, not class names: the Files view holds one thing, the empty
-      // state. Any row drawn above it - under whatever class - is a second child.
-      const main = screen.getByRole('main', { name: 'Files' });
-      expect(main.children).toHaveLength(1);
-      const view = main.children[0];
-      expect(view.children, 'the Files view draws more than the empty state').toHaveLength(1);
-      expect(view.children[0].textContent).toContain('Nothing open');
+      // The whole screen, not two levels of it. Every element must belong to a
+      // landmark (title bar, destinations, material rail, status line), be the
+      // empty state or inside it, or be an ancestor holding the empty state. A
+      // band drawn anywhere else - in the shell, the viewer, before the frame -
+      // is none of those.
+      const empty = screen.getByText('Nothing open').parentElement!;
+      const regions = [
+        screen.getByRole('banner'),
+        screen.getByRole('navigation', { name: 'Destinations' }),
+        screen.getByRole('complementary', { name: 'Material' }),
+        screen.getByRole('contentinfo'),
+        empty,
+      ];
+      const stray = [...document.body.querySelectorAll('*')].filter(
+        (el) => !regions.some((r) => r.contains(el)) && !el.contains(empty),
+      );
+      expect(stray.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
     });
 
     // Issue #2: at 400px beside a document, plan items wrapped to five lines.

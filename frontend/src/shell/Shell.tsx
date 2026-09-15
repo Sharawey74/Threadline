@@ -39,7 +39,8 @@ export function Shell({ title, rail, context, label, children, status }: ShellPr
           {children}
         </main>
       </div>
-      <div className="sh-status">{status}</div>
+      {/* A footer, so the status line is a landmark a screen reader can jump to. */}
+      <footer className="sh-status">{status}</footer>
     </div>
   );
 }
