@@ -207,8 +207,13 @@
 .wb-planpane {
   display: flex;
   flex-direction: column;
+  gap: var(--space-3);
   min-height: 0;
   height: 100%;
+  /* A destination now, not a pane against the window edge. The width is
+     capped so a line of the checklist stays readable on a wide monitor. */
+  max-width: 960px;
+  padding: var(--space-5) var(--space-6);
 }
 
 .wb-checklist {
