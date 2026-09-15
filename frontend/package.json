@@ -11,8 +11,8 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/plus-jakarta-sans": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.23",
     "cmdk": "^1.1.1",
     "dompurify": "^3.4.15",
