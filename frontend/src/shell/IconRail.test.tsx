@@ -12,15 +12,20 @@ function Harness() {
 }
 
 describe('the icon rail', () => {
+  // By accessible name, the name a screen reader announces - not textContent,
+  // which an aria-label or an aria-hidden label would silently diverge from.
   it('lists the five destinations in order', () => {
     render(<Harness />);
 
     const rail = screen.getByRole('navigation', { name: 'Destinations' });
-    expect(
-      within(rail)
-        .getAllByRole('button')
-        .map((b) => b.textContent),
-    ).toEqual(['Home', 'Files', 'Plan', 'Notes', 'Settings']);
+    const buttons = within(rail).getAllByRole('button');
+    expect(buttons).toHaveLength(5);
+    ['Home', 'Files', 'Plan', 'Notes', 'Settings'].forEach((name, i) => {
+      expect(
+        within(rail).getByRole('button', { name }),
+        `button ${i + 1} is not named ${name}`,
+      ).toBe(buttons[i]);
+    });
   });
 
   it('marks only the active destination', async () => {
