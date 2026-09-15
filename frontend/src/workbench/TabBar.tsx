@@ -21,10 +21,10 @@ export interface TabBarProps {
 
 export function TabBar({ open, activeId, onFocus, onClose }: TabBarProps) {
   if (open.length === 0) {
-    // Not an error and not worth a message. An empty tab row is the ordinary
-    // state before a document is opened, and a placeholder here would be one
-    // more thing to read on every launch.
-    return <div className="tb tb-empty" />;
+    // Nothing at all, not an empty row holding its height (issue #1). That row
+    // was 40px of permanent dead space traded for a one-frame shift when the
+    // first document opens - the wrong way round.
+    return null;
   }
 
   return (

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +25,12 @@ function expectNoSessionWording() {
   }
 }
 
+/** Opens a destination from the icon rail. */
+async function goTo(user: ReturnType<typeof userEvent.setup>, name: string) {
+  const rail = screen.getByRole('navigation', { name: 'Destinations' });
+  await user.click(within(rail).getByRole('button', { name }));
+}
+
 /** Waits for the material rail to finish its first read. */
 async function railReady() {
   await waitFor(() => {
@@ -34,7 +40,10 @@ async function railReady() {
 
 describe('the workbench', () => {
   it('shows the checklist once the plan loads', async () => {
+    const user = userEvent.setup();
     render(<Workbench />);
+    await railReady();
+    await goTo(user, 'Plan');
 
     await waitFor(() => {
       expect(screen.getByText(/Notes track/)).toBeTruthy();
@@ -158,7 +167,10 @@ describe('the workbench', () => {
   });
 
   it('keeps the note box present without being summoned', async () => {
+    const user = userEvent.setup();
     render(<Workbench />);
+    await railReady();
+    await goTo(user, 'Plan');
 
     await waitFor(() => {
       expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
@@ -172,29 +184,85 @@ describe('the workbench', () => {
     const user = userEvent.setup();
     render(<Workbench />);
     await railReady();
+    await goTo(user, 'Plan');
 
-    expect(screen.getByRole('textbox', { name: 'Note' })).toBeTruthy();
+    expect(await screen.findByRole('textbox', { name: 'Note' })).toBeTruthy();
     expectNoSessionWording();
 
-    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await goTo(user, 'Settings');
     // Without this the second check could pass against a Settings pane that
     // never opened.
     expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
     expectNoSessionWording();
   });
 
-  it('collapses both side panes in reading mode', async () => {
+  it('collapses the material rail in reading mode', async () => {
     const user = userEvent.setup();
     render(<Workbench />);
     await railReady();
 
     await user.click(
-      screen.getByRole('button', { name: /Reading mode: collapse both side panes/ }),
+      screen.getByRole('button', { name: /Reading mode: collapse the material rail/ }),
     );
 
     expect(screen.queryByRole('complementary', { name: 'Material' })).toBeNull();
-    expect(screen.queryByRole('complementary', { name: 'Plan' })).toBeNull();
-    expect(screen.getByRole('main', { name: 'Viewer' })).toBeTruthy();
+    expect(screen.getByRole('main', { name: 'Files' })).toBeTruthy();
+  });
+
+  describe('the shell', () => {
+    it('renders the title bar, the icon rail and a main region', async () => {
+      render(<Workbench />);
+      await railReady();
+
+      expect(screen.getByRole('banner')).toBeTruthy();
+      expect(screen.getByRole('group', { name: 'Window' })).toBeTruthy();
+      expect(screen.getByRole('navigation', { name: 'Destinations' })).toBeTruthy();
+      expect(screen.getByRole('main', { name: 'Files' })).toBeTruthy();
+    });
+
+    // Issue #1: the launch state drew 40px of empty tab row and a 52px header
+    // naming no document above an empty viewer.
+    it('draws no tab row and no document header with nothing open', async () => {
+      render(<Workbench />);
+      await railReady();
+
+      expect(screen.queryByRole('tablist')).toBeNull();
+
+      // The whole screen, not two levels of it. Every element must belong to a
+      // landmark (title bar, destinations, material rail, status line), be the
+      // empty state or inside it, or be an ancestor holding the empty state. A
+      // band drawn anywhere else - in the shell, the viewer, before the frame -
+      // is none of those.
+      const empty = screen.getByText('Nothing open').parentElement!;
+      const regions = [
+        screen.getByRole('banner'),
+        screen.getByRole('navigation', { name: 'Destinations' }),
+        screen.getByRole('complementary', { name: 'Material' }),
+        screen.getByRole('contentinfo'),
+        empty,
+      ];
+      const stray = [...document.body.querySelectorAll('*')].filter(
+        (el) => !regions.some((r) => r.contains(el)) && !el.contains(empty),
+      );
+      expect(stray.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
+    });
+
+    // Issue #2: at 400px beside a document, plan items wrapped to five lines.
+    it('shows the checklist under Plan and keeps no plan pane beside Files', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      expect(screen.queryByRole('complementary', { name: 'Plan' })).toBeNull();
+      expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
+
+      await goTo(user, 'Plan');
+
+      const main = screen.getByRole('main', { name: 'Plan' });
+      await waitFor(() => {
+        expect(within(main).getAllByRole('checkbox').length).toBeGreaterThan(0);
+      });
+    });
   });
 
   describe('settings', () => {
@@ -205,34 +273,36 @@ describe('the workbench', () => {
       render(<Workbench />);
       await railReady();
 
-      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      await goTo(user, 'Settings');
 
       expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeTruthy();
       expect(screen.getByRole('button', { name: 'Change…' })).toBeTruthy();
     });
 
-    it('goes back to the workbench', async () => {
+    it('goes back to Files', async () => {
       const user = userEvent.setup();
       render(<Workbench />);
       await railReady();
 
-      await user.click(screen.getByRole('button', { name: 'Settings' }));
-      await user.click(screen.getByRole('button', { name: 'Back to the workbench' }));
+      await goTo(user, 'Settings');
+      await goTo(user, 'Files');
 
       expect(screen.queryByRole('heading', { name: 'Settings', level: 1 })).toBeNull();
+      expect(screen.getByRole('main', { name: 'Files' })).toBeTruthy();
     });
 
-    // The rail and the plan stay put. Settings replaces the document being
-    // read, not the whole window, so coming back does not cost the tabs.
-    it('keeps the rail and the plan while settings is open', async () => {
+    // Settings is a destination, so leaving Files for it and coming back must
+    // not cost the documents that were open.
+    it('keeps the open documents across a visit to settings', async () => {
       const user = userEvent.setup();
       render(<Workbench />);
       await railReady();
 
-      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      await user.click(screen.getByRole('button', { name: /My notes/ }));
+      await goTo(user, 'Settings');
+      await goTo(user, 'Files');
 
-      expect(screen.getByRole('complementary', { name: 'Material' })).toBeTruthy();
-      expect(screen.getByRole('complementary', { name: 'Plan' })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /My notes/ })).toBeTruthy();
     });
   });
 });

@@ -5,12 +5,6 @@
   min-width: 0;
 }
 
-.tb-empty {
-  /* Holds the row's height so the chrome below does not shift up on the frame
-     before the first document opens. */
-  width: 100%;
-}
-
 .tb-tab {
   display: flex;
   align-items: center;

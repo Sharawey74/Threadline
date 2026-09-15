@@ -1,0 +1,248 @@
+/*
+ * The Windows shell: title bar, icon rail, context rail and the frame they sit
+ * in. Every value comes from a token in theme.css.
+ */
+
+/* ── Title bar ─────────────────────────────────────────────────────── */
+
+.sh-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--titlebar-height);
+  padding-left: var(--space-4);
+  background: var(--void);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+}
+
+.sh-brand {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sh-root {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  color: var(--text3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-grow {
+  flex: 1;
+}
+
+.sh-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sh-winctl {
+  display: flex;
+  align-self: stretch;
+}
+
+/* Windows caption buttons: 46px wide, full bar height, close turns red. */
+.sh-winbtn {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  padding: 0;
+  color: var(--text2);
+  background: transparent;
+  border: 0;
+}
+
+.sh-winbtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sh-winbtn:hover {
+  color: var(--text);
+  background: var(--card);
+}
+
+.sh-winbtn-close:hover {
+  color: #ffffff;
+  background: #c42b1c;
+}
+
+.sh-winbtn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* ── Icon rail ─────────────────────────────────────────────────────── */
+
+.sh-iconrail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: var(--iconrail-width);
+  padding: var(--space-3) 0;
+  background: var(--void);
+  border-right: 1px solid var(--line);
+}
+
+.sh-dest {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  width: 56px;
+  padding: var(--space-2) 0;
+  color: var(--text3);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+}
+
+.sh-dest:hover {
+  color: var(--text);
+  background: var(--card);
+}
+
+.sh-dest[aria-current='page'] {
+  color: var(--text);
+  background: var(--card-hi);
+}
+
+.sh-dest:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.sh-dest-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sh-dest-label {
+  font-size: var(--step-micro);
+}
+
+/* ── Progress ring ─────────────────────────────────────────────────── */
+
+.sh-ring {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sh-ring-track {
+  fill: none;
+  stroke: var(--line);
+}
+
+.sh-ring-fill {
+  fill: none;
+  stroke: var(--brand);
+  stroke-linecap: round;
+}
+
+.sh-ring-text {
+  font-size: var(--step-0);
+  color: var(--text2);
+}
+
+/* ── Context rail and surfaces ─────────────────────────────────────── */
+
+.sh-context {
+  display: flex;
+  flex-direction: column;
+  width: var(--contextrail-width);
+  min-height: 0;
+  overflow: hidden;
+  background: var(--rail);
+  border-right: 1px solid var(--line);
+  transition: width var(--pane-collapse) ease-out;
+}
+
+.sh-context-shut {
+  width: 0;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh-context {
+    transition: none;
+  }
+}
+
+.sh-card {
+  padding: var(--space-4);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.sh-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: 10px;
+}
+
+.sh-row:hover {
+  background: var(--card-hi);
+}
+
+.sh-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  font-size: var(--step-micro);
+  color: var(--text2);
+  background: var(--card);
+  border: 1px solid var(--line-up);
+  border-radius: 999px;
+}
+
+/* ── Frame ─────────────────────────────────────────────────────────── */
+
+/*
+ * The window's own rounded corners. The Wails window is frameless and
+ * transparent, so this radius is what the desktop sees.
+ */
+.sh {
+  display: grid;
+  grid-template-rows: var(--titlebar-height) minmax(0, 1fr) var(--statusbar-height);
+  height: 100%;
+  overflow: hidden;
+  color: var(--text);
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--window-radius);
+}
+
+.sh-body {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.sh-main {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--ground);
+}
+
+.sh-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: 0 var(--space-4);
+  font-size: var(--step-micro);
+  color: var(--text2);
+  background: var(--void);
+  border-top: 1px solid var(--line);
+}
