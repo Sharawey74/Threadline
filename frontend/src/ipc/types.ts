@@ -94,6 +94,47 @@ export interface Content {
   body: string;
 }
 
+/** One section of a PDF's outline: `- [ ] Title — p.N`. */
+export interface OutlineSection {
+  title: string;
+  /** The page the section starts on. */
+  page: number;
+  checked: boolean;
+  lineNo: number;
+}
+
+/** A PDF's sections in order. `total` is the user-entered page count, 0 when not recorded. */
+export interface Outline {
+  total: number;
+  sections: OutlineSection[];
+}
+
+/** The pages one section covers, inclusive. `to` is 0 when the end is unknown. */
+export interface PageRange {
+  from: number;
+  to: number;
+}
+
+/**
+ * Both counts an outline supports. The page figures mean something only when
+ * `pagesKnown`: without a recorded total there is no page figure at all (C5).
+ */
+export interface OutlineProgress {
+  sectionsDone: number;
+  sections: number;
+  pagesDone: number;
+  pages: number;
+  pagesKnown: boolean;
+}
+
+/** What the PDF record shows. `exists` is false until an outline is imported. */
+export interface OutlineView {
+  exists: boolean;
+  outline: Outline;
+  ranges: PageRange[];
+  progress: OutlineProgress;
+}
+
 /** Events Go pushes to the frontend. */
 export type EventName = 'plan:changed' | 'reconcile:drift';
 
