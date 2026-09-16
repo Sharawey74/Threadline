@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/Sharawey74/Threadline/core/plan"
@@ -166,5 +167,60 @@ func TestTickSectionRefusesAStaleTitle(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(path); !bytes.Equal(after, before) {
 		t.Error("a refused tick changed the outline")
+	}
+}
+
+// outlineFiles lists every outline sidecar under the career root.
+func outlineFiles(t *testing.T, dir string) []string {
+	t.Helper()
+	var found []string
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".outline.md") {
+			found = append(found, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return found
+}
+
+func TestScanNeverCreatesOutlines(t *testing.T) {
+	svc, dir := workspace(t)
+
+	// Everything a launch, a scan and an open do.
+	if _, err := svc.Topics(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Plan(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Reconciliation(); err != nil {
+		t.Fatal(err)
+	}
+	id := pdfID(t, svc)
+	if _, err := svc.ReadArtifact(id); err != nil {
+		t.Fatal(err)
+	}
+	view, err := svc.Outline(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if view.Exists || view.Progress.Sections != 0 {
+		t.Errorf("a PDF with no outline reports %+v", view)
+	}
+	if found := outlineFiles(t, dir); len(found) != 0 {
+		t.Fatalf("outlines exist before any import: %v", found)
+	}
+
+	if err := svc.SaveOutline(id, plan.Outline{Sections: sections("Preface")}); err != nil {
+		t.Fatal(err)
+	}
+	if found := outlineFiles(t, dir); len(found) != 1 {
+		t.Errorf("after one import, outlines = %v, want exactly one", found)
 	}
 }
