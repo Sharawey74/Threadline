@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/Sharawey74/Threadline/core/plan"
@@ -93,5 +94,77 @@ func TestSaveOutlineCleansTitlesAndRefusesNonPDFs(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, scan.StudyDir, "06 - System Design", "notes.outline.md")); err == nil {
 		t.Error("a refused save still wrote a file")
+	}
+}
+
+func TestReimportPreservesTicksByTitle(t *testing.T) {
+	svc, _ := workspace(t)
+	id := pdfID(t, svc)
+
+	first := sections("Preface", "Review", "Indexes — Part 1", "Review", "Joins")
+	if err := svc.SaveOutline(id, plan.Outline{Sections: first}); err != nil {
+		t.Fatal(err)
+	}
+	// Tick Preface, the second Review and Indexes.
+	for _, i := range []int{0, 3, 2} {
+		if err := svc.TickSection(id, i, first[i].Title, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Re-import: pages moved, one title retyped with a different dash and
+	// spacing, one removed, one renamed in case only, one new.
+	second := []plan.OutlineSection{
+		{Title: "Preface", Page: 3},
+		{Title: "Review", Page: 7},
+		{Title: " Indexes – Part 1 ", Page: 12},
+		{Title: "Review", Page: 20},
+		{Title: "preface", Page: 25},
+		{Title: "Sorting", Page: 30},
+	}
+	if err := svc.SaveOutline(id, plan.Outline{Sections: second}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := svc.Outline(id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ticks []bool
+	var pages []int
+	for _, s := range got.Outline.Sections {
+		ticks = append(ticks, s.Checked)
+		pages = append(pages, s.Page)
+	}
+	// Repeated titles match in order: the first Review was unticked, the
+	// second ticked. "preface" differs in case, so it is new.
+	wantTicks := []bool{true, false, true, true, false, false}
+	if !slices.Equal(ticks, wantTicks) {
+		t.Errorf("ticks after re-import = %v, want %v", ticks, wantTicks)
+	}
+	if !slices.Equal(pages, []int{3, 7, 12, 20, 25, 30}) {
+		t.Errorf("pages after re-import = %v, want the re-imported pages", pages)
+	}
+}
+
+func TestTickSectionRefusesAStaleTitle(t *testing.T) {
+	svc, dir := workspace(t)
+	id := pdfID(t, svc)
+	if err := svc.SaveOutline(id, plan.Outline{Sections: sections("Preface", "Indexes")}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, scan.StudyDir, "06 - System Design", "paper.outline.md")
+	before, _ := os.ReadFile(path)
+
+	for _, tc := range []struct {
+		index int
+		title string
+	}{{1, "Preface"}, {2, "Indexes"}, {-1, "Preface"}} {
+		if err := svc.TickSection(id, tc.index, tc.title, true); err == nil {
+			t.Errorf("TickSection(%d, %q) succeeded, want refused", tc.index, tc.title)
+		}
+	}
+	if after, _ := os.ReadFile(path); !bytes.Equal(after, before) {
+		t.Error("a refused tick changed the outline")
 	}
 }

@@ -76,7 +76,57 @@ func (s *Service) SaveOutline(id int64, o plan.Outline) error {
 		}
 		clean.Sections = append(clean.Sections, plan.OutlineSection{Title: title, Page: sec.Page})
 	}
+
+	ticks, err := existingTicks(path)
+	if err != nil {
+		return err
+	}
+	for i := range clean.Sections {
+		title := clean.Sections[i].Title
+		if queue := ticks[title]; len(queue) > 0 {
+			clean.Sections[i].Checked = queue[0]
+			ticks[title] = queue[1:]
+		}
+	}
 	return writeFileAtomic(path, []byte(plan.FormatOutline(clean)))
+}
+
+// existingTicks reads the tick state of an outline being replaced, by title.
+// Repeated titles keep their order, so the nth "Review" inherits the nth
+// one's tick. Titles are compared exactly, after the same cleaning as a save.
+func existingTicks(path string) (map[string][]bool, error) {
+	ticks := map[string][]bool{}
+	old, err := plan.ReadOutline(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return ticks, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, sec := range old.Sections {
+		title := cleanTitle(sec.Title)
+		ticks[title] = append(ticks[title], sec.Checked)
+	}
+	return ticks, nil
+}
+
+// TickSection ticks one section of a PDF's outline. The caller names the
+// section by position and title; if the title there has changed since the
+// caller read it, nothing is written.
+func (s *Service) TickSection(id int64, index int, title string, checked bool) error {
+	path, err := s.outlinePath(id)
+	if err != nil {
+		return err
+	}
+	o, err := plan.ReadOutline(path)
+	if err != nil {
+		return err
+	}
+	if index < 0 || index >= len(o.Sections) || o.Sections[index].Title != cleanTitle(title) {
+		return fmt.Errorf("no section %d titled %q in the outline", index, title)
+	}
+	_, err = plan.TickSection(path, o.Sections[index], checked)
+	return err
 }
 
 // cleanTitle makes a title one line that reads back unchanged: markup and
