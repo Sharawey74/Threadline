@@ -10,20 +10,37 @@
 // what the contract is.
 
 import {
+  AppendNote,
   ChooseCareerRoot,
   GetMaterial,
+  GetOutline,
   GetPlan,
   GetReconciliation,
   GetTopics,
   GetWorkspace,
+  OpenExternal,
+  ParseOutline,
   ReadArtifact,
+  SaveOutline,
   SetCareerRoot,
   TickItem,
+  TickSection,
   WriteArtifact,
 } from '../../wailsjs/go/bridge/App';
+import { plan } from '../../wailsjs/go/models';
 import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
 
-import type { Artifact, Check, Content, EventName, Plan, Topic, Workspace } from './types';
+import type {
+  Artifact,
+  Check,
+  Content,
+  EventName,
+  Outline,
+  OutlineView,
+  Plan,
+  Topic,
+  Workspace,
+} from './types';
 import type { IPC } from './index';
 
 export class WailsIPC implements IPC {
@@ -53,6 +70,14 @@ export class WailsIPC implements IPC {
     return GetWorkspace() as Promise<Workspace>;
   }
 
+  parseOutline(text: string): Promise<Outline> {
+    return ParseOutline(text) as Promise<Outline>;
+  }
+
+  getOutline(artifactId: number): Promise<OutlineView> {
+    return GetOutline(artifactId) as Promise<OutlineView>;
+  }
+
   // ── Commands ───────────────────────────────────────────────────────
 
   tickItem(anchor: string, checked: boolean): Promise<void> {
@@ -69,6 +94,22 @@ export class WailsIPC implements IPC {
 
   chooseCareerRoot(): Promise<string> {
     return ChooseCareerRoot();
+  }
+
+  saveOutline(artifactId: number, outline: Outline): Promise<void> {
+    return SaveOutline(artifactId, plan.Outline.createFrom(outline));
+  }
+
+  tickSection(artifactId: number, index: number, title: string, checked: boolean): Promise<void> {
+    return TickSection(artifactId, index, title, checked);
+  }
+
+  openExternal(artifactId: number, page: number): Promise<void> {
+    return OpenExternal(artifactId, page);
+  }
+
+  appendNote(artifactId: number, section: string, text: string): Promise<void> {
+    return AppendNote(artifactId, section, text);
   }
 
   // ── Events ─────────────────────────────────────────────────────────
