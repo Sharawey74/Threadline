@@ -16,6 +16,10 @@ import type {
   Content,
   EventName,
   Item,
+  Outline,
+  OutlineSection,
+  OutlineView,
+  PageRange,
   Plan,
   Section,
   Topic,
@@ -32,56 +36,120 @@ const sections: Section[] = [
 
 const items: Item[] = [
   {
-    anchor: 'a1b2c3d4e5f60001', lineNo: 60, checked: false,
+    anchor: 'a1b2c3d4e5f60001',
+    lineNo: 60,
+    checked: false,
     text: '1. 02 - Databases & Storage - 49pp, ~7h - ACID, indexing, PostgreSQL',
-    section: 'Study guide & notes', role: 'curriculum', order: 1,
-    hours: 7, hoursConf: 'high', pages: 49, pagesConf: 'high', notes: [],
+    section: 'Study guide & notes',
+    role: 'curriculum',
+    order: 1,
+    hours: 7,
+    hoursConf: 'high',
+    pages: 49,
+    pagesConf: 'high',
+    notes: [],
   },
   {
-    anchor: 'a1b2c3d4e5f60002', lineNo: 64, checked: false,
+    anchor: 'a1b2c3d4e5f60002',
+    lineNo: 64,
+    checked: false,
     text: '2. 06 - System Design - 175pp, ~35h - Fundamentals v3 (102pp), Q&A (25pp)',
-    section: 'Study guide & notes', role: 'curriculum', order: 2,
-    hours: 35, hoursConf: 'high', pages: 175, pagesConf: 'high',
-    notes: ['multiple page counts: 175pp, (102pp describes another file), (25pp describes another file)'],
+    section: 'Study guide & notes',
+    role: 'curriculum',
+    order: 2,
+    hours: 35,
+    hoursConf: 'high',
+    pages: 175,
+    pagesConf: 'high',
+    notes: [
+      'multiple page counts: 175pp, (102pp describes another file), (25pp describes another file)',
+    ],
   },
   {
-    anchor: 'a1b2c3d4e5f60003', lineNo: 68, checked: true,
+    anchor: 'a1b2c3d4e5f60003',
+    lineNo: 68,
+    checked: true,
     text: '3. 09 - AI - 10pp, ~3h - GenAI',
-    section: 'Study guide & notes', role: 'curriculum', order: 3,
-    hours: 3, hoursConf: 'high', pages: 10, pagesConf: 'high', notes: [],
+    section: 'Study guide & notes',
+    role: 'curriculum',
+    order: 3,
+    hours: 3,
+    hoursConf: 'high',
+    pages: 10,
+    pagesConf: 'high',
+    notes: [],
   },
   {
-    anchor: 'a1b2c3d4e5f60004', lineNo: 92, checked: false,
+    anchor: 'a1b2c3d4e5f60004',
+    lineNo: 92,
+    checked: false,
     text: 'Choose the target application and write a one-page test plan',
-    section: 'Certificate project A', role: 'scope', order: 0,
-    hours: 0, hoursConf: 'none', pages: 0, pagesConf: 'none', notes: [],
+    section: 'Certificate project A',
+    role: 'scope',
+    order: 0,
+    hours: 0,
+    hoursConf: 'none',
+    pages: 0,
+    pagesConf: 'none',
+    notes: [],
   },
   {
-    anchor: 'a1b2c3d4e5f60005', lineNo: 137, checked: false,
+    anchor: 'a1b2c3d4e5f60005',
+    lineNo: 137,
+    checked: false,
     text: 'Delete the duplicate pages in Study guided & notes',
-    section: 'Now -> Sun 30 Aug', role: 'schedule', order: 0,
-    hours: 0.5, hoursConf: 'high', pages: 0, pagesConf: 'none', notes: [],
+    section: 'Now -> Sun 30 Aug',
+    role: 'schedule',
+    order: 0,
+    hours: 0.5,
+    hoursConf: 'high',
+    pages: 0,
+    pagesConf: 'none',
+    notes: [],
   },
   {
-    anchor: 'a1b2c3d4e5f60006', lineNo: 138, checked: false,
+    anchor: 'a1b2c3d4e5f60006',
+    lineNo: 138,
+    checked: false,
     text: 'Notes track - 15h (topics 1 and 2)',
-    section: 'Now -> Sun 30 Aug', role: 'schedule', order: 0,
-    hours: 15, hoursConf: 'high', pages: 0, pagesConf: 'none', notes: [],
+    section: 'Now -> Sun 30 Aug',
+    role: 'schedule',
+    order: 0,
+    hours: 15,
+    hoursConf: 'high',
+    pages: 0,
+    pagesConf: 'none',
+    notes: [],
   },
   {
     // No hours at all. The UI must render this differently from "0h".
-    anchor: 'a1b2c3d4e5f60007', lineNo: 141, checked: false,
+    anchor: 'a1b2c3d4e5f60007',
+    lineNo: 141,
+    checked: false,
     text: 'Wrap the internship',
-    section: 'Now -> Sun 30 Aug', role: 'schedule', order: 0,
-    hours: 0, hoursConf: 'none', pages: 0, pagesConf: 'none', notes: [],
+    section: 'Now -> Sun 30 Aug',
+    role: 'schedule',
+    order: 0,
+    hours: 0,
+    hoursConf: 'none',
+    pages: 0,
+    pagesConf: 'none',
+    notes: [],
   },
   {
     // Low confidence: a bare figure the author never marked up. Must be
     // qualified on screen, never shown as fact (C5).
-    anchor: 'a1b2c3d4e5f60008', lineNo: 145, checked: false,
+    anchor: 'a1b2c3d4e5f60008',
+    lineNo: 145,
+    checked: false,
     text: 'ISTQB study - roughly 25h of syllabus reading',
-    section: 'September', role: 'schedule', order: 0,
-    hours: 25, hoursConf: 'low', pages: 0, pagesConf: 'none',
+    section: 'September',
+    role: 'schedule',
+    order: 0,
+    hours: 25,
+    hoursConf: 'low',
+    pages: 0,
+    pagesConf: 'none',
     notes: ['bare hour figure - not marked up by the author'],
   },
 ];
@@ -94,16 +162,136 @@ const topics: Topic[] = [
 
 const material: Record<string, Artifact[]> = {
   '06 - System Design': [
-    { id: 1, path: '06 - System Design/Fundamentals v3.pdf', title: 'Fundamentals v3', ext: '.pdf', isPlanFile: false },
-    { id: 2, path: '06 - System Design/notes.md', title: 'My notes', ext: '.md', isPlanFile: false },
+    {
+      id: 1,
+      path: '06 - System Design/Fundamentals v3.pdf',
+      title: 'Fundamentals v3',
+      ext: '.pdf',
+      isPlanFile: false,
+    },
+    {
+      id: 2,
+      path: '06 - System Design/notes.md',
+      title: 'My notes',
+      ext: '.md',
+      isPlanFile: false,
+    },
     // The plan file: editable nowhere, tickable everywhere.
-    { id: 9, path: 'Roadmap_Checklist.md', title: 'Roadmap_Checklist.md', ext: '.md', isPlanFile: true },
+    {
+      id: 9,
+      path: 'Roadmap_Checklist.md',
+      title: 'Roadmap_Checklist.md',
+      ext: '.md',
+      isPlanFile: true,
+    },
   ],
   '02 - Databases & Storage': [
-    { id: 3, path: '02 - Databases & Storage/ACID.pdf', title: 'ACID', ext: '.pdf', isPlanFile: false },
+    {
+      id: 3,
+      path: '02 - Databases & Storage/ACID.pdf',
+      title: 'ACID',
+      ext: '.pdf',
+      isPlanFile: false,
+    },
   ],
   '09 - AI': [],
 };
+
+// Fundamentals v3 has an outline: nine sections over 49 pages, the first four
+// ticked, covering 2 + 2 + 3 + 5 = 12 pages. ACID has none, so the invitation
+// state is reachable in development too.
+const fundamentals: [string, number][] = [
+  ['Scalability', 1],
+  ['Latency and throughput', 3],
+  ['Availability', 5],
+  ['Consistency patterns', 8],
+  ['DNS', 13],
+  ['Content delivery networks', 19],
+  ['Load balancers', 26],
+  ['Databases', 34],
+  ['Caching', 42],
+];
+
+const outlines: Record<number, Outline> = {
+  1: {
+    total: 49,
+    sections: fundamentals.map(([title, page], i) => ({
+      title,
+      page,
+      checked: i < 4,
+      lineNo: i + 5,
+    })),
+  },
+};
+
+// A small port of core/plan's outline rules, for development only. The app
+// parses in Go; this keeps the import screen usable without it.
+const sectionLine = /^\s*-\s*\[[ xX]\]\s*(.*\S)\s*[-–—]\s*p\.(\d+)\s*$/;
+const dotLeader = /^\s*\d+\.\s*(.+?)\s*\.{2,}\s*(\d+)\s*$/;
+const totalLine = /^\s*Total pages:\s*(\d+)\s*$/;
+
+function parse(text: string): Outline {
+  const out: Outline = { total: 0, sections: [] };
+  text.split('\n').forEach((raw, i) => {
+    const line = raw.replace(/\r$/, '');
+    const total = totalLine.exec(line);
+    if (total) {
+      out.total = Number(total[1]);
+      return;
+    }
+    const m = sectionLine.exec(line) ?? dotLeader.exec(line);
+    if (m === null) return;
+    out.sections.push({
+      title: m[1].replace(/[–—]/g, '-').trim(),
+      page: Number(m[2]),
+      checked: false,
+      lineNo: i + 1,
+    });
+  });
+  return out;
+}
+
+const noOutline: OutlineView = {
+  exists: false,
+  outline: { total: 0, sections: [] },
+  ranges: [],
+  progress: { sectionsDone: 0, sections: 0, pagesDone: 0, pages: 0, pagesKnown: false },
+};
+
+function view(o: Outline): OutlineView {
+  const ranges: PageRange[] = o.sections.map((s, i) => {
+    const to = i + 1 < o.sections.length ? o.sections[i + 1].page - 1 : o.total;
+    const known = to >= s.page && to > 0 && (o.total === 0 || to <= o.total);
+    return { from: s.page, to: known ? to : 0 };
+  });
+  const pagesKnown = o.total > 0;
+  const pagesDone = o.sections.reduce(
+    (sum, s, i) => sum + (s.checked && ranges[i].to > 0 ? ranges[i].to - ranges[i].from + 1 : 0),
+    0,
+  );
+  return {
+    exists: true,
+    outline: clone(o),
+    ranges,
+    progress: {
+      sectionsDone: o.sections.filter((s) => s.checked).length,
+      sections: o.sections.length,
+      pagesDone: pagesKnown ? pagesDone : 0,
+      pages: pagesKnown ? o.total : 0,
+      pagesKnown,
+    },
+  };
+}
+
+function isPDF(id: number): boolean {
+  return Object.values(material)
+    .flat()
+    .some((a) => a.id === id && a.ext === '.pdf');
+}
+
+function notPDF(id: number): Promise<never> {
+  return Promise.reject(new Error(`artifact ${String(id)} is not a PDF`));
+}
 
 /** True when the id belongs to the plan file. */
 function isPlanFile(id: number): boolean {
@@ -124,6 +312,10 @@ function delay<T>(value: T, ms = 40): Promise<T> {
 
 export class MockIPC implements IPC {
   private items = clone(items);
+  private outlines = clone(outlines);
+  /** Every Edge launch and note, so tests and development can see them. */
+  readonly opened: { artifactId: number; page: number }[] = [];
+  readonly notes: { artifactId: number; section: string; text: string }[] = [];
   private contents = new Map<number, string>();
   private handlers = new Map<EventName, Set<() => void>>();
   // The mock starts configured: I3's tests drive the workbench itself, and
@@ -153,12 +345,46 @@ export class MockIPC implements IPC {
     // One failing check on purpose. Drift is a state the UI must render, and a
     // mock that always passes produces a UI nobody has seen fail.
     return delay<Check[]>([
-      { label: '§9 Now -> Sun 30 Aug tasks vs heading', got: 15.5, want: 19, unit: 'h', passed: false,
-        detail: 'items sum to 15.5h; the heading declares 19h' },
-      { label: '§10 September tasks vs heading', got: 54, want: 54, unit: 'h', passed: true, detail: '' },
-      { label: 'curriculum hours vs budget table row', got: 45, want: 45, unit: 'h', passed: true, detail: '' },
-      { label: 'curriculum items vs topic folders on disk', got: 3, want: 3, unit: '', passed: true, detail: '' },
-      { label: 'schedule/scope sections declaring a budget', got: 3, want: 3, unit: '', passed: true, detail: '' },
+      {
+        label: '§9 Now -> Sun 30 Aug tasks vs heading',
+        got: 15.5,
+        want: 19,
+        unit: 'h',
+        passed: false,
+        detail: 'items sum to 15.5h; the heading declares 19h',
+      },
+      {
+        label: '§10 September tasks vs heading',
+        got: 54,
+        want: 54,
+        unit: 'h',
+        passed: true,
+        detail: '',
+      },
+      {
+        label: 'curriculum hours vs budget table row',
+        got: 45,
+        want: 45,
+        unit: 'h',
+        passed: true,
+        detail: '',
+      },
+      {
+        label: 'curriculum items vs topic folders on disk',
+        got: 3,
+        want: 3,
+        unit: '',
+        passed: true,
+        detail: '',
+      },
+      {
+        label: 'schedule/scope sections declaring a budget',
+        got: 3,
+        want: 3,
+        unit: '',
+        passed: true,
+        detail: '',
+      },
     ]);
   }
 
@@ -183,6 +409,16 @@ export class MockIPC implements IPC {
     });
   }
 
+  parseOutline(text: string): Promise<Outline> {
+    return delay(parse(text));
+  }
+
+  getOutline(artifactId: number): Promise<OutlineView> {
+    if (!isPDF(artifactId)) return notPDF(artifactId);
+    const outline = this.outlines[artifactId];
+    return delay(outline === undefined ? clone(noOutline) : view(outline));
+  }
+
   // ── Commands ───────────────────────────────────────────────────────
 
   tickItem(anchor: string, checked: boolean): Promise<void> {
@@ -202,9 +438,7 @@ export class MockIPC implements IPC {
     if (isPlanFile(artifactId)) {
       // The real bridge refuses this too. A UI bug must not be the only thing
       // standing between a full-file rewrite and the plan file (C3).
-      return Promise.reject(
-        new Error('the plan file is modified only by ticking a checkbox'),
-      );
+      return Promise.reject(new Error('the plan file is modified only by ticking a checkbox'));
     }
     this.contents.set(artifactId, content);
     return delay(undefined);
@@ -220,6 +454,49 @@ export class MockIPC implements IPC {
     // plausible folder rather than pretending a picker appeared.
     this.careerRoot = 'C:/Users/DELL/Desktop/Career';
     return delay(this.careerRoot);
+  }
+
+  saveOutline(artifactId: number, outline: Outline): Promise<void> {
+    if (!isPDF(artifactId)) return notPDF(artifactId);
+    // Ticks survive a re-import by title, in order, as in Go.
+    const ticks = new Map<string, boolean[]>();
+    for (const s of this.outlines[artifactId]?.sections ?? []) {
+      ticks.set(s.title, [...(ticks.get(s.title) ?? []), s.checked]);
+    }
+    const sections: OutlineSection[] = outline.sections.map((s, i) => {
+      const title = s.title.split(/\s+/).filter(Boolean).join(' ');
+      const queue = ticks.get(title) ?? [];
+      return { title, page: s.page, checked: queue.shift() ?? false, lineNo: i + 5 };
+    });
+    if (sections.some((s) => s.title === '')) {
+      return Promise.reject(new Error('a section has no title'));
+    }
+    this.outlines[artifactId] = { total: outline.total, sections };
+    return delay(undefined);
+  }
+
+  tickSection(artifactId: number, index: number, title: string, checked: boolean): Promise<void> {
+    const sections = this.outlines[artifactId]?.sections ?? [];
+    const section = index >= 0 && index < sections.length ? sections[index] : undefined;
+    if (section === undefined || section.title !== title) {
+      return Promise.reject(new Error(`no section ${String(index)} titled ${title}`));
+    }
+    section.checked = checked;
+    return delay(undefined);
+  }
+
+  openExternal(artifactId: number, page: number): Promise<void> {
+    if (!isPDF(artifactId)) return notPDF(artifactId);
+    this.opened.push({ artifactId, page });
+    return delay(undefined);
+  }
+
+  appendNote(artifactId: number, section: string, text: string): Promise<void> {
+    if (section.trim() === '' || text.trim() === '') {
+      return Promise.reject(new Error('a note needs a section and some text'));
+    }
+    this.notes.push({ artifactId, section, text });
+    return delay(undefined);
   }
 
   // ── Events ─────────────────────────────────────────────────────────
