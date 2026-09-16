@@ -32,10 +32,9 @@ interface Block {
   decls: { prop: string; value: string }[];
 }
 
-/** Every block in a stylesheet, with its own declarations. Comments removed. */
-function blocks(path: string): Block[] {
-  const text = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const file = relative(src, path).split(sep).join('/');
+/** Every block in a stylesheet's text, with its own declarations. Comments removed. */
+function blocks(file: string, css: string): Block[] {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const out: Block[] = [];
   const stack: Block[] = [];
   const preludes: string[] = [];
@@ -70,7 +69,19 @@ function blocks(path: string): Block[] {
 // Every stylesheet in the frontend, not only src/: one imported from outside
 // src/ ships just the same.
 const stylesheets = filesUnder(frontend, (name) => name.endsWith('.css'));
-const all = stylesheets.flatMap(blocks);
+const indexHtml = join(frontend, 'index.html');
+
+// A <style> element in index.html is a stylesheet too.
+const inlineStyles = [
+  ...readFileSync(indexHtml, 'utf8').matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi),
+].map((m) => m[1]);
+
+const all = [
+  ...stylesheets.flatMap((path) =>
+    blocks(relative(src, path).split(sep).join('/'), readFileSync(path, 'utf8')),
+  ),
+  ...inlineStyles.flatMap((css) => blocks('../index.html <style>', css)),
+];
 
 const SURFACES = ['--void', '--ground', '--rail', '--card', '--card-hi'];
 const LINES = ['--line', '--line-up'];
@@ -120,7 +131,7 @@ function misplacedDeclarations(token: string): string[] {
 // only be read, through var(); anything else is a second, unaudited value.
 const scanned = [
   ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
-  join(frontend, 'index.html'),
+  indexHtml,
   ...stylesheets.filter((path) => !path.startsWith(src)),
 ]
   .filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css')
@@ -295,5 +306,11 @@ describe('the design values', () => {
       { prop: 'color', value: 'var(--void)' },
       { prop: 'background', value: 'var(--brand)' },
     ]);
+
+    // CSS need not live in a stylesheet: a string injected as a <style> from
+    // code would never be parsed above. The selector itself, with its leading
+    // dot, belongs only in theme.css. className="btn-primary" has no dot.
+    const selector = /\.btn-primary(?![\w-])/;
+    expect(scanned.filter(({ text }) => selector.test(text)).map(({ name }) => name)).toEqual([]);
   });
 });
