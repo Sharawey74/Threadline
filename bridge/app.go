@@ -286,7 +286,55 @@ func (a *App) WriteArtifact(artifactID int64, content string) error {
 	return a.svc.WriteArtifact(artifactID, content)
 }
 
+// SaveOutline writes an imported outline beside its PDF, keeping the tick on
+// every section whose title is unchanged.
+func (a *App) SaveOutline(artifactID int64, outline plan.Outline) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.svc.SaveOutline(artifactID, outline)
+}
+
+// TickSection sets one outline section's checkbox, named by position and title.
+func (a *App) TickSection(artifactID int64, index int, title string, checked bool) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.svc.TickSection(artifactID, index, title, checked)
+}
+
+// OpenExternal opens a PDF in Edge, at a page when page > 0.
+func (a *App) OpenExternal(artifactID int64, page int) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.svc.OpenExternal(artifactID, page)
+}
+
+// AppendNote adds a note under a section heading in the file's notes sidecar.
+func (a *App) AppendNote(artifactID int64, section, text string) error {
+	if err := a.ready(); err != nil {
+		return err
+	}
+	return a.svc.AppendNote(artifactID, section, text)
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────
+
+// ParseOutline reads pasted text into sections without saving anything. It
+// needs no career folder: it reads only the text it is given.
+func (a *App) ParseOutline(text string) (plan.Outline, error) {
+	return plan.ImportOutline(text), nil
+}
+
+// GetOutline returns a PDF's outline with its ranges and progress, or an empty
+// view when it has none yet.
+func (a *App) GetOutline(artifactID int64) (workspace.OutlineView, error) {
+	if err := a.ready(); err != nil {
+		return workspace.OutlineView{}, err
+	}
+	return a.svc.Outline(artifactID)
+}
 
 // GetPlan returns the parsed plan file.
 func (a *App) GetPlan() (*plan.Plan, error) {
