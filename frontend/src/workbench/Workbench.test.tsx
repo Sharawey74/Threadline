@@ -25,21 +25,35 @@ function expectNoSessionWording() {
   }
 }
 
-const NAMED = '[aria-label], [aria-labelledby], [title], [alt]';
+const NAMES = ['aria-label', 'aria-labelledby', 'title', 'alt'];
+/** Elements that draw something themselves, so a name on them is content. */
+const CONTROLS =
+  'button, a[href], img, [role="button"], [role="link"], [role="img"], [role="tab"], [role="checkbox"]';
 const FIELDS = 'input, select, textarea';
 /** Known spacers: they draw nothing and hold a flex slot open. */
 const SPACERS = '.sh-grow, .sb-sep, .sb-spacer, ul.ex-files:empty';
 
-/** True if the element shows or names something, or is a listed spacer. */
+/**
+ * A named control or a field. A name on a container only labels what is
+ * inside it, so an empty named strip draws nothing and does not count.
+ */
+function draws(el: Element): boolean {
+  const named = NAMES.some((name) => (el.getAttribute(name) ?? '').trim() !== '');
+  return (el.matches(CONTROLS) && named) || el.matches(FIELDS);
+}
+
+/**
+ * True if the element shows text, is part of a drawing, is a named control or
+ * a field, holds one, or is a listed spacer. An icon alone does not make its
+ * container count.
+ */
 function hasContent(el: Element): boolean {
   return (
     (el.textContent ?? '').trim() !== '' ||
-    el.matches(NAMED) ||
-    el.querySelector(NAMED) !== null ||
     el.closest('svg') !== null ||
-    el.matches(FIELDS) ||
-    el.querySelector(FIELDS) !== null ||
-    el.matches(SPACERS)
+    el.matches(SPACERS) ||
+    draws(el) ||
+    [...el.querySelectorAll('*')].some(draws)
   );
 }
 
