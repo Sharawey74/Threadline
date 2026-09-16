@@ -23,6 +23,32 @@ describe('the shell surfaces', () => {
     expect(document.querySelector('.sh-context')?.hasAttribute('inert')).toBe(true);
   });
 
+  // Reading mode collapses the rail. Unmounting its children instead would
+  // throw away the tree's scroll position and expanded folders; a remount
+  // shows up as a new node.
+  it('keeps the same children mounted through a collapse', () => {
+    const { rerender } = render(
+      <ContextRail label="Material">
+        <button type="button">Redis</button>
+      </ContextRail>,
+    );
+    const before = screen.getByText('Redis');
+
+    rerender(
+      <ContextRail label="Material" collapsed>
+        <button type="button">Redis</button>
+      </ContextRail>,
+    );
+    expect(before.isConnected).toBe(true);
+
+    rerender(
+      <ContextRail label="Material">
+        <button type="button">Redis</button>
+      </ContextRail>,
+    );
+    expect(screen.getByRole('button', { name: 'Redis' })).toBe(before);
+  });
+
   it('keeps a caller class alongside its own', () => {
     render(
       <>
