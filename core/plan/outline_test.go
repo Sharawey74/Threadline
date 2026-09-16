@@ -1,7 +1,12 @@
 package plan
 
 import (
+	"bytes"
+	"errors"
+	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -169,4 +174,107 @@ func TestOutlineProgressCountsSectionsAndPages(t *testing.T) {
 	if got := o.Progress(); got != want {
 		t.Errorf("Progress() with no total = %+v, want %+v", got, want)
 	}
+}
+
+// outlineCopy copies the outline fixture into a temp dir, so ticks land on a
+// copy and never on the fixture.
+func outlineCopy(t *testing.T, eol string) (path string, original []byte) {
+	t.Helper()
+	src, err := os.ReadFile(filepath.Join("testdata", "outline.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src = []byte(strings.ReplaceAll(string(src), "\n", eol))
+	path = filepath.Join(t.TempDir(), "Designing Data-Intensive Applications.outline.md")
+	if err := os.WriteFile(path, src, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path, src
+}
+
+func outlineSections(t *testing.T, path string) []OutlineSection {
+	t.Helper()
+	o, err := ReadOutline(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return o.Sections
+}
+
+// C4 for outlines: the name puts it behind CI's blocking round-trip gate.
+func TestRoundTripOutline(t *testing.T) {
+	for _, eol := range []string{"\n", "\r\n"} {
+		t.Run(strings.ReplaceAll(strings.ReplaceAll(eol, "\r", "CR"), "\n", "LF"), func(t *testing.T) {
+			path, original := outlineCopy(t, eol)
+			sections := outlineSections(t, path)
+			if len(sections) != 16 {
+				t.Fatalf("fixture has %d sections, want 16", len(sections))
+			}
+
+			// Each section on its own: flipping it changes one byte, flipping
+			// it back restores the file exactly.
+			for _, s := range sections {
+				n, err := TickSection(path, s, !s.Checked)
+				if err != nil || n != 1 {
+					t.Fatalf("tick %q: %d bytes, %v", s.Title, n, err)
+				}
+				after, _ := os.ReadFile(path)
+				if diff := differingBytes(original, after); diff != 1 {
+					t.Fatalf("tick %q changed %d bytes, want 1", s.Title, diff)
+				}
+				if n, err := TickSection(path, s, s.Checked); err != nil || n != 1 {
+					t.Fatalf("untick %q: %d bytes, %v", s.Title, n, err)
+				}
+				if after, _ := os.ReadFile(path); !bytes.Equal(after, original) {
+					t.Fatalf("tick then untick of %q left the file changed", s.Title)
+				}
+			}
+
+			// Every section ticked, then every one put back.
+			for _, s := range sections {
+				if _, err := TickSection(path, s, true); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, s := range outlineSections(t, path) {
+				if !s.Checked {
+					t.Errorf("%q still unticked after ticking all", s.Title)
+				}
+			}
+			for _, s := range sections {
+				if _, err := TickSection(path, s, s.Checked); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if after, _ := os.ReadFile(path); !bytes.Equal(after, original) {
+				t.Error("tick all then restore left the file changed")
+			}
+		})
+	}
+}
+
+func TestTickSectionRefusesAChangedLine(t *testing.T) {
+	path, original := outlineCopy(t, "\n")
+	s := outlineSections(t, path)[3]
+	s.Raw = strings.Replace(s.Raw, "Storage", "Storage Engines", 1)
+
+	if _, err := TickSection(path, s, true); !errors.Is(err, ErrAnchorMismatch) {
+		t.Errorf("tick of a line no longer in the file: err = %v, want ErrAnchorMismatch", err)
+	}
+	if after, _ := os.ReadFile(path); !bytes.Equal(after, original) {
+		t.Error("a refused tick changed the file")
+	}
+}
+
+func differingBytes(a, b []byte) int {
+	if len(a) != len(b) {
+		return -1
+	}
+	n := 0
+	for i := range a {
+		if a[i] != b[i] {
+			n++
+		}
+	}
+	return n
 }

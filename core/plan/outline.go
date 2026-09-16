@@ -2,6 +2,7 @@ package plan
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -194,4 +195,51 @@ func (o Outline) Progress() OutlineProgress {
 		p.PagesDone = 0
 	}
 	return p
+}
+
+// roleOutline scopes an outline line's anchor, so it can never equal a plan
+// item's.
+const roleOutline Role = "outline"
+
+// ParseOutline reads an outline file's text, ticks included.
+func ParseOutline(text string) Outline {
+	var out Outline
+	for i, line := range strings.Split(text, "\n") {
+		line = strings.TrimRight(line, "\r")
+		if m := totalRe.FindStringSubmatch(line); m != nil {
+			if n, err := strconv.Atoi(m[1]); err == nil {
+				out.Total = n
+			}
+			continue
+		}
+		if s, ok := ParseOutlineLine(line, i+1); ok {
+			out.Sections = append(out.Sections, s)
+		}
+	}
+	return out
+}
+
+// ReadOutline reads and parses an outline file.
+func ReadOutline(path string) (Outline, error) {
+	b, err := os.ReadFile(path) // #nosec G304 -- a sidecar under the career root
+	if err != nil {
+		return Outline{}, err
+	}
+	return ParseOutline(string(b)), nil
+}
+
+// TickSection sets one section's box through Tick, the plan file's one-byte
+// path: the line is found again by its anchor, and the whole file must be
+// unchanged since it was read. It returns the bytes changed, 1 or 0.
+func TickSection(path string, s OutlineSection, checked bool) (int, error) {
+	item, ok := ParseCheckbox(s.Raw, s.LineNo)
+	if !ok {
+		return 0, ErrAnchorMismatch
+	}
+	return Tick(TickOptions{
+		Path:    path,
+		Anchor:  Anchor(roleOutline, "", item.Text),
+		Checked: checked,
+		Role:    roleOutline,
+	})
 }
