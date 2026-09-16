@@ -1,0 +1,366 @@
+/*
+ * The PDF record and the outline import screen.
+ *
+ * Built only from the audited tokens: every text colour here is one of the
+ * three text tiers on one of the five surfaces, so theme.test.ts's contrast
+ * audit covers it. The topic hue marks an edge, never a fill behind text.
+ */
+
+/* ── PDF record ──────────────────────────────────────────────────── */
+
+.pr {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 820px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6) var(--space-7);
+}
+
+.pr-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: 18px;
+}
+
+.pr-title {
+  margin: 0;
+  font-size: var(--step-4);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.pr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.pr-open,
+.pr-add {
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--step-0);
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pr-add {
+  color: var(--text);
+  background: var(--card-hi);
+  border: 1px solid var(--line-up);
+}
+
+.pr-counts {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  font-variant-numeric: tabular-nums;
+  color: var(--text2);
+}
+
+.pr-counts span + span::before {
+  content: '·';
+  margin-right: var(--space-3);
+  color: var(--text3);
+}
+
+.pr-band {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.pr-h2 {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pr-quiet {
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--step-0);
+  color: var(--text2);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.pr-quiet:hover {
+  color: var(--text);
+  border-color: var(--line-up);
+}
+
+.pr-secs {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pr-sec {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+/* Finished sections recede rather than staying boxed. */
+.pr-sec-done {
+  background: transparent;
+  border-color: transparent;
+}
+
+.pr-sec-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pr-sec-label input {
+  flex: none;
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  margin: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.pr-sec-label input:disabled {
+  cursor: progress;
+}
+
+.pr-sec-title {
+  font-size: var(--step-1);
+  color: var(--text);
+}
+
+.pr-sec-done .pr-sec-title {
+  color: var(--text3);
+}
+
+.pr-next {
+  padding: 1px var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  letter-spacing: 0.12em;
+  color: var(--text);
+  border: 1px solid var(--brand);
+  border-radius: 999px;
+}
+
+.pr-page {
+  grid-column: 3;
+  font-family: var(--font-mono);
+  font-size: var(--step-micro);
+  font-variant-numeric: tabular-nums;
+  color: var(--text3);
+}
+
+.pr-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.pr-hint {
+  max-width: var(--measure);
+  margin: 0;
+  color: var(--text2);
+}
+
+/* ── Outline import ─────────────────────────────────────────────── */
+
+.oi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  padding: var(--space-5) var(--space-6);
+}
+
+.oi-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.oi-title {
+  margin: 0;
+  font-size: var(--step-3);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.oi-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: 0;
+  flex: 1;
+}
+
+@media (width < 760px) {
+  .oi-panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.oi-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.oi-label {
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.oi-paste {
+  flex: 1;
+  min-height: 240px;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--rail);
+  border: 1px solid var(--line-up);
+  border-radius: 12px;
+  resize: none;
+}
+
+.oi-rows {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.oi-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.oi-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.oi-page {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--step-micro);
+  color: var(--text3);
+}
+
+.oi-num {
+  width: 5.5ch;
+  padding: 2px var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--step-0);
+  color: var(--text);
+  background: var(--rail);
+  border: 1px solid var(--line-up);
+  border-radius: 6px;
+}
+
+.oi-moves {
+  display: flex;
+  gap: 2px;
+}
+
+.oi-move {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text2);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.oi-move:hover:not([aria-disabled='true']) {
+  color: var(--text);
+  border-color: var(--line-up);
+}
+
+.oi-move[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.oi-move svg {
+  width: 16px;
+  height: 16px;
+}
+
+.oi-empty {
+  margin: 0;
+  color: var(--text3);
+}
+
+.oi-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.oi-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--drift);
+}
+
+.pr-failure {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-5);
+  color: var(--drift);
+}
