@@ -98,7 +98,55 @@ function declarationsOf(token: string) {
   );
 }
 
+/** The only places a token may be declared: its theme.css block(s). */
+function homesOf(token: string): string[] {
+  const themes = DIMENSIONS.includes(token) ? [DARK] : [DARK, LIGHT];
+  return themes.map((theme) => `workbench/theme.css ${theme}`);
+}
+
+/** Declarations of a token anywhere but its own theme.css block(s), or twice there. */
+function misplacedDeclarations(token: string): string[] {
+  const found = declarationsOf(token).map((d) => d.at);
+  const homes = homesOf(token);
+  const counted = homes.map((home) => found.filter((at) => at === home).length);
+  return [
+    ...found.filter((at) => !homes.includes(at)).map((at) => `${token} declared in ${at}`),
+    ...homes.filter((_, i) => counted[i] > 1).map((home) => `${token} declared twice in ${home}`),
+  ];
+}
+
+// A CSS audit cannot see a value set elsewhere: an inline style in a
+// component, a <style> in index.html. Outside theme.css an audited token may
+// only be read, through var(); anything else is a second, unaudited value.
+const scanned = [
+  ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
+  join(frontend, 'index.html'),
+  ...stylesheets.filter((path) => !path.startsWith(src)),
+]
+  .filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css')
+  .map((path) => ({
+    name: relative(frontend, path).split(sep).join('/'),
+    text: readFileSync(path, 'utf8'),
+  }));
+
+/** Places outside theme.css that name a token other than to read it through var(). */
+function unguardedMentions(token: string): string[] {
+  const name = new RegExp(`(?<![A-Za-z0-9_-])${token}(?![A-Za-z0-9_-])`, 'g');
+  return scanned.flatMap(({ name: file, text }) =>
+    [...text.matchAll(name)]
+      .filter((m) => !/var\(\s*$/.test(text.slice(0, m.index)))
+      .map(() => `${file}: ${token} outside var()`),
+  );
+}
+
+/**
+ * The one value a token has in a theme. Throws if the token is set anywhere
+ * else, so every test that reads a value also proves it is the only value.
+ */
 function valueIn(context: string, token: string): string {
+  const elsewhere = [...misplacedDeclarations(token), ...unguardedMentions(token)];
+  if (elsewhere.length > 0)
+    throw new Error(`${token} is not only set in theme.css: ${elsewhere.join('; ')}`);
   const found = declarationsOf(token).filter((d) => d.at === `workbench/theme.css ${context}`);
   if (found.length !== 1)
     throw new Error(`${token} has ${found.length} declarations in ${context}`);
@@ -126,15 +174,17 @@ function contrast(a: string, b: string): number {
 
 describe('where the tokens live', () => {
   // One declaration per theme, in one place. Anything else is a second value
-  // the audit below would not be measuring.
+  // the audit below would not be measuring. valueIn() applies the same check
+  // to every token it reads.
   it('declares each themed token exactly once per theme, in theme.css, and nowhere else', () => {
     for (const token of THEMED) {
+      expect(misplacedDeclarations(token), token).toEqual([]);
       expect(
         declarationsOf(token)
           .map((d) => d.at)
           .sort(),
         token,
-      ).toEqual([`workbench/theme.css ${DARK}`, `workbench/theme.css ${LIGHT}`].sort());
+      ).toEqual(homesOf(token).sort());
     }
   });
 
@@ -143,35 +193,14 @@ describe('where the tokens live', () => {
       expect(
         declarationsOf(token).map((d) => d.at),
         token,
-      ).toEqual([`workbench/theme.css ${DARK}`]);
+      ).toEqual(homesOf(token));
     }
   });
 });
 
 describe('where the tokens can be set', () => {
-  // A CSS audit cannot see a value set elsewhere: an inline style in a
-  // component, a <style> in index.html. Outside theme.css an audited token may
-  // only be read, through var(); anything else is a second, unaudited value.
   it('names an audited token outside theme.css only inside var()', () => {
-    const files = [
-      ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
-      join(frontend, 'index.html'),
-      ...stylesheets.filter((path) => !path.startsWith(src)),
-    ].filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css');
-
-    const offences: string[] = [];
-    for (const path of files) {
-      const text = readFileSync(path, 'utf8');
-      for (const token of AUDITED) {
-        const name = new RegExp(`(?<![A-Za-z0-9_-])${token}(?![A-Za-z0-9_-])`, 'g');
-        for (const m of text.matchAll(name)) {
-          if (!/var\(\s*$/.test(text.slice(0, m.index))) {
-            offences.push(`${relative(frontend, path)}: ${token} outside var()`);
-          }
-        }
-      }
-    }
-    expect(offences).toEqual([]);
+    expect(AUDITED.flatMap(unguardedMentions)).toEqual([]);
   });
 });
 
