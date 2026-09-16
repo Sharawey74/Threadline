@@ -82,7 +82,7 @@ type Outline struct {
 // text imports to the same sections. Every other line is ignored, and every
 // imported section starts unticked.
 func ImportOutline(text string) Outline {
-	var out Outline
+	out := Outline{Sections: []OutlineSection{}}
 	for i, line := range strings.Split(text, "\n") {
 		line = strings.TrimRight(line, "\r")
 		if m := totalRe.FindStringSubmatch(line); m != nil {
@@ -203,7 +203,7 @@ const roleOutline Role = "outline"
 
 // ParseOutline reads an outline file's text, ticks included.
 func ParseOutline(text string) Outline {
-	var out Outline
+	out := Outline{Sections: []OutlineSection{}}
 	for i, line := range strings.Split(text, "\n") {
 		line = strings.TrimRight(line, "\r")
 		if m := totalRe.FindStringSubmatch(line); m != nil {

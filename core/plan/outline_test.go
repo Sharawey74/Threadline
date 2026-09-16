@@ -278,3 +278,16 @@ func differingBytes(a, b []byte) int {
 	}
 	return n
 }
+
+// An outline crosses the bridge as JSON: an empty one must be an empty list,
+// not null, or every caller needs a null check.
+func TestEmptyOutlineHasAnEmptySectionList(t *testing.T) {
+	for name, o := range map[string]Outline{
+		"import": ImportOutline("no sections here"),
+		"parse":  ParseOutline(""),
+	} {
+		if o.Sections == nil {
+			t.Errorf("%s: Sections is nil, want an empty list", name)
+		}
+	}
+}
