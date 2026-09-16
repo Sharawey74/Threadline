@@ -165,3 +165,33 @@ func (o Outline) Ranges() []PageRange {
 	}
 	return out
 }
+
+// OutlineProgress is both counts an outline supports. The page figures are
+// set only when PagesKnown: without a recorded total the last section has no
+// end, so any page figure would be invented (C5).
+type OutlineProgress struct {
+	SectionsDone int  `json:"sectionsDone"`
+	Sections     int  `json:"sections"`
+	PagesDone    int  `json:"pagesDone"`
+	Pages        int  `json:"pages"`
+	PagesKnown   bool `json:"pagesKnown"`
+}
+
+// Progress counts ticked sections, and the pages their ranges cover.
+func (o Outline) Progress() OutlineProgress {
+	p := OutlineProgress{Sections: len(o.Sections)}
+	ranges := o.Ranges()
+	for i, s := range o.Sections {
+		if s.Checked {
+			p.SectionsDone++
+			p.PagesDone += ranges[i].Pages()
+		}
+	}
+	if o.Total > 0 {
+		p.Pages = o.Total
+		p.PagesKnown = true
+	} else {
+		p.PagesDone = 0
+	}
+	return p
+}

@@ -141,3 +141,32 @@ func TestSectionPageRanges(t *testing.T) {
 		}
 	}
 }
+
+func TestOutlineProgressCountsSectionsAndPages(t *testing.T) {
+	// Nine sections covering 49 pages; the first four run 2, 2, 3 and 5
+	// pages, so ticking them covers 12.
+	starts := []int{1, 3, 5, 8, 13, 19, 26, 34, 42}
+	o := Outline{Total: 49}
+	for i, p := range starts {
+		o.Sections = append(o.Sections, OutlineSection{Title: string(rune('A' + i)), Page: p, Checked: i < 4})
+	}
+
+	want := OutlineProgress{SectionsDone: 4, Sections: 9, PagesDone: 12, Pages: 49, PagesKnown: true}
+	if got := o.Progress(); got != want {
+		t.Errorf("Progress() = %+v, want %+v", got, want)
+	}
+
+	// Ticks elsewhere change the page figure by that section's own range.
+	o.Sections[0].Checked = false
+	o.Sections[8].Checked = true
+	if got := o.Progress(); got.SectionsDone != 4 || got.PagesDone != 18 {
+		t.Errorf("after moving a tick: %+v, want 4 sections and 18 pages", got)
+	}
+
+	// With no total there is no page figure at all, not a partial one (C5).
+	o.Total = 0
+	want = OutlineProgress{SectionsDone: 4, Sections: 9}
+	if got := o.Progress(); got != want {
+		t.Errorf("Progress() with no total = %+v, want %+v", got, want)
+	}
+}
