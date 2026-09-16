@@ -215,6 +215,30 @@ describe('where the tokens can be set', () => {
   });
 });
 
+describe('the page behind the shell', () => {
+  // main.go makes the webview transparent so the window takes the shell's
+  // 22px radius. Anything painted under .sh fills those corners back in.
+  it('paints no background on the page, only on the shell', () => {
+    const page = /^(html|body|#root|:root(\[[^\]]*\])?)$/;
+    const painted = all
+      .filter((b) => {
+        const selectors = b.context.split(' > ').pop()!.split(',');
+        return selectors.some((s) => page.test(s.trim()));
+      })
+      .flatMap((b) =>
+        b.decls
+          .filter((d) => d.prop.startsWith('background') && d.value !== 'transparent')
+          .map((d) => `${b.file} ${b.context}: ${d.prop}: ${d.value}`),
+      );
+    expect(painted).toEqual([]);
+
+    const shell = all.filter((b) => b.file === 'shell/shell.css' && b.context === '.sh');
+    expect(shell.flatMap((b) => b.decls).filter((d) => d.prop === 'background')).toEqual([
+      { prop: 'background', value: 'var(--ground)' },
+    ]);
+  });
+});
+
 describe.each([
   ['dark', DARK],
   ['light', LIGHT],

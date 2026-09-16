@@ -255,7 +255,11 @@ body,
 }
 
 body {
-  background: var(--bg);
+  /*
+   * Transparent: the webview is, so the window takes .sh's rounded corners.
+   * The shell and the first-run screen paint their own ground.
+   */
+  background: transparent;
   color: var(--fg);
   font-family: var(--font);
   font-size: var(--step-1);
