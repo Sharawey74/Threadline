@@ -25,6 +25,24 @@ function expectNoSessionWording() {
   }
 }
 
+const NAMED = '[aria-label], [aria-labelledby], [title], [alt]';
+const FIELDS = 'input, select, textarea';
+/** Known spacers: they draw nothing and hold a flex slot open. */
+const SPACERS = '.sh-grow, .sb-sep, .sb-spacer, ul.ex-files:empty';
+
+/** True if the element shows or names something, or is a listed spacer. */
+function hasContent(el: Element): boolean {
+  return (
+    (el.textContent ?? '').trim() !== '' ||
+    el.matches(NAMED) ||
+    el.querySelector(NAMED) !== null ||
+    el.closest('svg') !== null ||
+    el.matches(FIELDS) ||
+    el.querySelector(FIELDS) !== null ||
+    el.matches(SPACERS)
+  );
+}
+
 /** Opens a destination from the icon rail. */
 async function goTo(user: ReturnType<typeof userEvent.setup>, name: string) {
   const rail = screen.getByRole('navigation', { name: 'Destinations' });
@@ -245,6 +263,14 @@ describe('the workbench', () => {
         (el) => !regions.some((r) => r.contains(el)) && !el.contains(empty),
       );
       expect(stray.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
+
+      // Inside those regions too: a band needs no content to take up a row.
+      // Every element must carry something - text, a name, a drawing, a field -
+      // or hold something that does, or be a spacer on the list below. The list
+      // is default-deny: a new spacer is added here on purpose. jsdom does no
+      // layout, so dead space made by padding or a pseudo-element is out of reach.
+      const blank = [...document.body.querySelectorAll('*')].filter((el) => !hasContent(el));
+      expect(blank.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
     });
 
     // Issue #2: at 400px beside a document, plan items wrapped to five lines.
