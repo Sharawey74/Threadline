@@ -1,6 +1,9 @@
 package plan
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 // Tests are written against tasks/phase-8.md's criteria, not against
 // outline.go. An outline is a sidecar checklist of a PDF's sections: one
@@ -49,4 +52,60 @@ func TestParseOutlineReadsTitleAndPage(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestImportDotLeaders(t *testing.T) {
+	got := ImportOutline("3. Indexes........ 47").Sections
+	if len(got) != 1 || got[0].Title != "Indexes" || got[0].Page != 47 {
+		t.Fatalf("ImportOutline = %+v, want one section Indexes at page 47", got)
+	}
+
+	// A pasted table of contents carries headings, blank lines and prose. Only
+	// dot-leader lines are sections, in the order they appear.
+	toc := "Contents\n\n1. Preface.... 1\n  2. Storage   ....... 9\nChapter notes\n3. Indexes........ 47\n4. No leader 50\n"
+	var titles []string
+	var pages []int
+	for _, s := range ImportOutline(toc).Sections {
+		titles = append(titles, s.Title)
+		pages = append(pages, s.Page)
+		if s.Checked {
+			t.Errorf("%s imported ticked; an import starts every section unticked", s.Title)
+		}
+	}
+	if !slices.Equal(titles, []string{"Preface", "Storage", "Indexes"}) || !slices.Equal(pages, []int{1, 9, 47}) {
+		t.Errorf("imported %v at %v, want [Preface Storage Indexes] at [1 9 47]", titles, pages)
+	}
+}
+
+func TestImportIsRescannable(t *testing.T) {
+	toc := "1. Preface.... 1\n2. B-Trees — Part 2........ 9\n3. Indexes........ 47\n"
+	first := ImportOutline(toc)
+	first.Total = 49
+
+	text := FormatOutline(first)
+	again := ImportOutline(text)
+
+	if !sameSections(again.Sections, first.Sections) {
+		t.Errorf("re-import of\n%s\ngave %+v, want %+v", text, again.Sections, first.Sections)
+	}
+	if again.Total != 49 {
+		t.Errorf("re-import total = %d, want 49", again.Total)
+	}
+	if len(again.Sections) != 3 {
+		t.Errorf("re-import found %d sections, want 3", len(again.Sections))
+	}
+}
+
+// sameSections compares what an import is about - title, page, order - and
+// not where each line happened to sit in the text it came from.
+func sameSections(a, b []OutlineSection) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Title != b[i].Title || a[i].Page != b[i].Page || a[i].Checked != b[i].Checked {
+			return false
+		}
+	}
+	return true
 }
