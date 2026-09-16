@@ -127,3 +127,41 @@ func FormatOutline(o Outline) string {
 	}
 	return b.String()
 }
+
+// PageRange is the pages one section covers, inclusive. To is 0 when the end
+// is unknown: the last section with no total recorded, or pages that do not
+// run forwards.
+type PageRange struct {
+	From int `json:"from"`
+	To   int `json:"to"`
+}
+
+// Known reports whether the range has a real end.
+func (r PageRange) Known() bool { return r.To >= r.From && r.To > 0 }
+
+// Pages is the number of pages in a known range, and 0 otherwise.
+func (r PageRange) Pages() int {
+	if !r.Known() {
+		return 0
+	}
+	return r.To - r.From + 1
+}
+
+// Ranges gives each section's pages: from its start to the page before the
+// next section starts, and for the last section, to the recorded total. An
+// end that is missing, before the start, or past the total is unknown.
+func (o Outline) Ranges() []PageRange {
+	out := make([]PageRange, len(o.Sections))
+	for i, s := range o.Sections {
+		end := o.Total
+		if i+1 < len(o.Sections) {
+			end = o.Sections[i+1].Page - 1
+		}
+		r := PageRange{From: s.Page, To: end}
+		if !r.Known() || (o.Total > 0 && end > o.Total) {
+			r.To = 0
+		}
+		out[i] = r
+	}
+	return out
+}

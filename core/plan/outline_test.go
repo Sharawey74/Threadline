@@ -109,3 +109,35 @@ func sameSections(a, b []OutlineSection) bool {
 	}
 	return true
 }
+
+func TestSectionPageRanges(t *testing.T) {
+	o := Outline{Total: 49, Sections: []OutlineSection{
+		{Title: "Preface", Page: 1},
+		{Title: "Storage", Page: 9},
+		{Title: "Indexes", Page: 47},
+	}}
+	want := []PageRange{{From: 1, To: 8}, {From: 9, To: 46}, {From: 47, To: 49}}
+	if got := o.Ranges(); !slices.Equal(got, want) {
+		t.Errorf("Ranges() = %v, want %v", got, want)
+	}
+
+	// With no total recorded, the last section's end is unknown: it is not
+	// guessed from anything (C5).
+	o.Total = 0
+	got := o.Ranges()
+	if got[2] != (PageRange{From: 47}) || got[2].Known() {
+		t.Errorf("last range with no total = %+v, want From 47 and unknown", got[2])
+	}
+	if !got[1].Known() || got[1].Pages() != 38 {
+		t.Errorf("middle range = %+v (%d pages), want known with 38 pages", got[1], got[1].Pages())
+	}
+
+	// A total below the last start, or sections out of order, cannot give a
+	// real range either.
+	bad := Outline{Total: 40, Sections: []OutlineSection{{Title: "B", Page: 30}, {Title: "A", Page: 10}, {Title: "C", Page: 45}}}
+	for i, r := range bad.Ranges() {
+		if r.Known() {
+			t.Errorf("range %d = %+v is known, want unknown", i, r)
+		}
+	}
+}
