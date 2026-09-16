@@ -32,10 +32,9 @@ interface Block {
   decls: { prop: string; value: string }[];
 }
 
-/** Every block in a stylesheet, with its own declarations. Comments removed. */
-function blocks(path: string): Block[] {
-  const text = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const file = relative(src, path).split(sep).join('/');
+/** Every block in a stylesheet's text, with its own declarations. Comments removed. */
+function blocks(file: string, css: string): Block[] {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '');
   const out: Block[] = [];
   const stack: Block[] = [];
   const preludes: string[] = [];
@@ -70,7 +69,19 @@ function blocks(path: string): Block[] {
 // Every stylesheet in the frontend, not only src/: one imported from outside
 // src/ ships just the same.
 const stylesheets = filesUnder(frontend, (name) => name.endsWith('.css'));
-const all = stylesheets.flatMap(blocks);
+const indexHtml = join(frontend, 'index.html');
+
+// A <style> element in index.html is a stylesheet too.
+const inlineStyles = [
+  ...readFileSync(indexHtml, 'utf8').matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi),
+].map((m) => m[1]);
+
+const all = [
+  ...stylesheets.flatMap((path) =>
+    blocks(relative(src, path).split(sep).join('/'), readFileSync(path, 'utf8')),
+  ),
+  ...inlineStyles.flatMap((css) => blocks('../index.html <style>', css)),
+];
 
 const SURFACES = ['--void', '--ground', '--rail', '--card', '--card-hi'];
 const LINES = ['--line', '--line-up'];
@@ -98,7 +109,55 @@ function declarationsOf(token: string) {
   );
 }
 
+/** The only places a token may be declared: its theme.css block(s). */
+function homesOf(token: string): string[] {
+  const themes = DIMENSIONS.includes(token) ? [DARK] : [DARK, LIGHT];
+  return themes.map((theme) => `workbench/theme.css ${theme}`);
+}
+
+/** Declarations of a token anywhere but its own theme.css block(s), or twice there. */
+function misplacedDeclarations(token: string): string[] {
+  const found = declarationsOf(token).map((d) => d.at);
+  const homes = homesOf(token);
+  const counted = homes.map((home) => found.filter((at) => at === home).length);
+  return [
+    ...found.filter((at) => !homes.includes(at)).map((at) => `${token} declared in ${at}`),
+    ...homes.filter((_, i) => counted[i] > 1).map((home) => `${token} declared twice in ${home}`),
+  ];
+}
+
+// A CSS audit cannot see a value set elsewhere: an inline style in a
+// component, a <style> in index.html. Outside theme.css an audited token may
+// only be read, through var(); anything else is a second, unaudited value.
+const scanned = [
+  ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
+  indexHtml,
+  ...stylesheets.filter((path) => !path.startsWith(src)),
+]
+  .filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css')
+  .map((path) => ({
+    name: relative(frontend, path).split(sep).join('/'),
+    text: readFileSync(path, 'utf8'),
+  }));
+
+/** Places outside theme.css that name a token other than to read it through var(). */
+function unguardedMentions(token: string): string[] {
+  const name = new RegExp(`(?<![A-Za-z0-9_-])${token}(?![A-Za-z0-9_-])`, 'g');
+  return scanned.flatMap(({ name: file, text }) =>
+    [...text.matchAll(name)]
+      .filter((m) => !/var\(\s*$/.test(text.slice(0, m.index)))
+      .map(() => `${file}: ${token} outside var()`),
+  );
+}
+
+/**
+ * The one value a token has in a theme. Throws if the token is set anywhere
+ * else, so every test that reads a value also proves it is the only value.
+ */
 function valueIn(context: string, token: string): string {
+  const elsewhere = [...misplacedDeclarations(token), ...unguardedMentions(token)];
+  if (elsewhere.length > 0)
+    throw new Error(`${token} is not only set in theme.css: ${elsewhere.join('; ')}`);
   const found = declarationsOf(token).filter((d) => d.at === `workbench/theme.css ${context}`);
   if (found.length !== 1)
     throw new Error(`${token} has ${found.length} declarations in ${context}`);
@@ -126,15 +185,17 @@ function contrast(a: string, b: string): number {
 
 describe('where the tokens live', () => {
   // One declaration per theme, in one place. Anything else is a second value
-  // the audit below would not be measuring.
+  // the audit below would not be measuring. valueIn() applies the same check
+  // to every token it reads.
   it('declares each themed token exactly once per theme, in theme.css, and nowhere else', () => {
     for (const token of THEMED) {
+      expect(misplacedDeclarations(token), token).toEqual([]);
       expect(
         declarationsOf(token)
           .map((d) => d.at)
           .sort(),
         token,
-      ).toEqual([`workbench/theme.css ${DARK}`, `workbench/theme.css ${LIGHT}`].sort());
+      ).toEqual(homesOf(token).sort());
     }
   });
 
@@ -143,35 +204,70 @@ describe('where the tokens live', () => {
       expect(
         declarationsOf(token).map((d) => d.at),
         token,
-      ).toEqual([`workbench/theme.css ${DARK}`]);
+      ).toEqual(homesOf(token));
     }
   });
 });
 
 describe('where the tokens can be set', () => {
-  // A CSS audit cannot see a value set elsewhere: an inline style in a
-  // component, a <style> in index.html. Outside theme.css an audited token may
-  // only be read, through var(); anything else is a second, unaudited value.
   it('names an audited token outside theme.css only inside var()', () => {
-    const files = [
-      ...filesUnder(src, (name) => !/\.test\.[jt]sx?$/.test(name)),
-      join(frontend, 'index.html'),
-      ...stylesheets.filter((path) => !path.startsWith(src)),
-    ].filter((path) => relative(src, path).split(sep).join('/') !== 'workbench/theme.css');
+    expect(AUDITED.flatMap(unguardedMentions)).toEqual([]);
+  });
+});
 
-    const offences: string[] = [];
-    for (const path of files) {
-      const text = readFileSync(path, 'utf8');
-      for (const token of AUDITED) {
-        const name = new RegExp(`(?<![A-Za-z0-9_-])${token}(?![A-Za-z0-9_-])`, 'g');
-        for (const m of text.matchAll(name)) {
-          if (!/var\(\s*$/.test(text.slice(0, m.index))) {
-            offences.push(`${relative(frontend, path)}: ${token} outside var()`);
-          }
-        }
-      }
-    }
-    expect(offences).toEqual([]);
+describe('the tokens in use', () => {
+  // A token nothing reads is a value nobody checks, and it invites the next
+  // change to land in the wrong place.
+  it('reads every token theme.css declares', () => {
+    const code = scanned.map(({ text }) => text).join('\n');
+    const tailwind = all.filter((b) => b.file === 'workbench/theme.css' && b.context === '@theme');
+    const readByTailwind = new Set(tailwind.flatMap((b) => b.decls.map((d) => d.prop)));
+    const theme = all.filter((b) => b.file === 'workbench/theme.css');
+    const css = theme.flatMap((b) => b.decls.map((d) => d.value)).join('\n');
+
+    const unread = [...new Set(theme.flatMap((b) => b.decls.map((d) => d.prop)))]
+      .filter((prop) => prop.startsWith('--') && !readByTailwind.has(prop))
+      // Topic hues are read through a template: var(--t${topic}).
+      .filter((prop) => !(HUES.includes(prop) && code.includes('var(--t${')))
+      .filter((prop) => {
+        const read = new RegExp(`var\\(\\s*${prop}(?![A-Za-z0-9_-])`);
+        return !read.test(code) && !read.test(css);
+      });
+    expect(unread).toEqual([]);
+  });
+
+  it('draws every focus ring in the brand colour', () => {
+    const rings = all.flatMap((b) =>
+      b.decls
+        .filter((d) => /^outline(-color)?$/.test(d.prop) && !/^(none|0)$/.test(d.value))
+        .map((d) => `${b.file} ${b.context}: ${d.value}`),
+    );
+    expect(rings.length).toBeGreaterThan(0);
+    expect(rings.filter((r) => !r.endsWith('solid var(--brand)'))).toEqual([]);
+  });
+});
+
+describe('the page behind the shell', () => {
+  // main.go makes the webview transparent so the window takes the shell's
+  // 22px radius. Anything painted under .sh fills those corners back in.
+  it('paints no background on the page, only on the shell', () => {
+    const page = /^(html|body|#root|:root(\[[^\]]*\])?)$/;
+    const painted = all
+      .filter((b) => {
+        const selectors = b.context.split(' > ').pop()!.split(',');
+        return selectors.some((s) => page.test(s.trim()));
+      })
+      .flatMap((b) =>
+        b.decls
+          .filter((d) => d.prop.startsWith('background') && d.value !== 'transparent')
+          .map((d) => `${b.file} ${b.context}: ${d.prop}: ${d.value}`),
+      );
+    expect(painted).toEqual([]);
+
+    const shell = all.filter((b) => b.file === 'shell/shell.css' && b.context === '.sh');
+    expect(shell.flatMap((b) => b.decls).filter((d) => d.prop === 'background')).toEqual([
+      { prop: 'background', value: 'var(--ground)' },
+    ]);
   });
 });
 
@@ -204,6 +300,14 @@ describe.each([
     for (const hue of HUES) {
       const ratio = contrast(colour(hue), colour('--card'));
       expect(ratio, `${hue} on --card is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  // A focus ring is a non-text mark too, and it can land on any surface.
+  it('the focus ring clears 3:1 on all five surfaces', () => {
+    for (const surface of SURFACES) {
+      const ratio = contrast(colour('--brand'), colour(surface));
+      expect(ratio, `--brand on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
     }
   });
 });
@@ -266,5 +370,11 @@ describe('the design values', () => {
       { prop: 'color', value: 'var(--void)' },
       { prop: 'background', value: 'var(--brand)' },
     ]);
+
+    // CSS need not live in a stylesheet: a string injected as a <style> from
+    // code would never be parsed above. The selector itself, with its leading
+    // dot, belongs only in theme.css. className="btn-primary" has no dot.
+    const selector = /\.btn-primary(?![\w-])/;
+    expect(scanned.filter(({ text }) => selector.test(text)).map(({ name }) => name)).toEqual([]);
   });
 });

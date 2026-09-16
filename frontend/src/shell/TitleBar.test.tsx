@@ -32,12 +32,21 @@ describe('the title bar', () => {
       'Close',
     ]);
 
+    // With no app actions passed in, the group holds every button the bar has.
+    expect(within(screen.getByRole('banner')).getAllByRole('button')).toEqual(controls);
+
+    // Each click calls its own control and nothing else.
+    const calls = () => [
+      runtime.WindowMinimise.mock.calls.length,
+      runtime.WindowToggleMaximise.mock.calls.length,
+      runtime.Quit.mock.calls.length,
+    ];
     await user.click(controls[0]);
-    expect(runtime.WindowMinimise).toHaveBeenCalledOnce();
+    expect(calls()).toEqual([1, 0, 0]);
     await user.click(controls[1]);
-    expect(runtime.WindowToggleMaximise).toHaveBeenCalledOnce();
+    expect(calls()).toEqual([1, 1, 0]);
     await user.click(controls[2]);
-    expect(runtime.Quit).toHaveBeenCalledOnce();
+    expect(calls()).toEqual([1, 1, 1]);
   });
 
   it('always shows the career root', () => {

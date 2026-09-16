@@ -71,10 +71,8 @@
    * Text, by how much attention it deserves.
    *
    * --fg-faint sits close to --fg-muted on purpose. Both are real text, so
-   * both must clear 4.5:1 on every surface above, and against a #233047 hover
-   * row that floor does not leave room for three distinct weights. The
-   * measured alternative was 3.59:1, which is a contrast failure dressed up as
-   * a hierarchy. Two weights that pass beat three where one does not.
+   * both must clear 4.5:1 on every surface above, --card-hi included. Only
+   * the aliases are named for weight; the values are the three text tiers.
    */
   --fg: var(--text);
   --fg-muted: var(--text2);
@@ -127,21 +125,9 @@
   --checkbox-size: 15px;
 
   --radius: 6px;
-  /*
-   * A proportion with both ends pinned, not a fixed size. At 260px flat the
-   * rail took roughly 40% of a narrow window and the viewer — the point of the
-   * screen — got less than the chrome around it. The floor keeps a long
-   * filename readable; the ceiling stops the rail sprawling on a wide monitor.
-   */
-  --rail-width: clamp(240px, 22vw, 300px);
-  --plan-width: clamp(320px, 26vw, 400px);
-
-  /* Fixed chrome, pinned by the design canvas. --header-height is what the
-     current single-bar layout uses; Wave B replaces it with the three below. */
-  --header-height: 44px;
-  --titlebar-height: 44px;
 
   /* The Windows shell, 9 Sep 2026: the frame every screen sits in. */
+  --titlebar-height: 44px;
   --window-radius: 22px;
   --iconrail-width: 72px;
   --contextrail-width: 280px;
@@ -255,7 +241,11 @@ body,
 }
 
 body {
-  background: var(--bg);
+  /*
+   * Transparent: the webview is, so the window takes .sh's rounded corners.
+   * The shell and the first-run screen paint their own ground.
+   */
+  background: transparent;
   color: var(--fg);
   font-family: var(--font);
   font-size: var(--step-1);
@@ -264,8 +254,9 @@ body {
   overflow: hidden;
 }
 
+/* One focus colour, the action colour. --brand clears 3:1 on every surface. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 

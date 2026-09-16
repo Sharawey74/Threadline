@@ -25,6 +25,38 @@ function expectNoSessionWording() {
   }
 }
 
+const NAMES = ['aria-label', 'aria-labelledby', 'title', 'alt'];
+/** Elements that draw something themselves, so a name on them is content. */
+const CONTROLS =
+  'button, a[href], img, [role="button"], [role="link"], [role="img"], [role="tab"], [role="checkbox"]';
+const FIELDS = 'input, select, textarea';
+/** Known spacers: they draw nothing and hold a flex slot open. */
+const SPACERS = '.sh-grow, .sb-sep, .sb-spacer, ul.ex-files:empty';
+
+/**
+ * A named control or a field. A name on a container only labels what is
+ * inside it, so an empty named strip draws nothing and does not count.
+ */
+function draws(el: Element): boolean {
+  const named = NAMES.some((name) => (el.getAttribute(name) ?? '').trim() !== '');
+  return (el.matches(CONTROLS) && named) || el.matches(FIELDS);
+}
+
+/**
+ * True if the element shows text, is part of a drawing, is a named control or
+ * a field, holds one, or is a listed spacer. An icon alone does not make its
+ * container count.
+ */
+function hasContent(el: Element): boolean {
+  return (
+    (el.textContent ?? '').trim() !== '' ||
+    el.closest('svg') !== null ||
+    el.matches(SPACERS) ||
+    draws(el) ||
+    [...el.querySelectorAll('*')].some(draws)
+  );
+}
+
 /** Opens a destination from the icon rail. */
 async function goTo(user: ReturnType<typeof userEvent.setup>, name: string) {
   const rail = screen.getByRole('navigation', { name: 'Destinations' });
@@ -245,6 +277,14 @@ describe('the workbench', () => {
         (el) => !regions.some((r) => r.contains(el)) && !el.contains(empty),
       );
       expect(stray.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
+
+      // Inside those regions too: a band needs no content to take up a row.
+      // Every element must carry something - text, a name, a drawing, a field -
+      // or hold something that does, or be a spacer on the list below. The list
+      // is default-deny: a new spacer is added here on purpose. jsdom does no
+      // layout, so dead space made by padding or a pseudo-element is out of reach.
+      const blank = [...document.body.querySelectorAll('*')].filter((el) => !hasContent(el));
+      expect(blank.map((el) => el.outerHTML.slice(0, 80))).toEqual([]);
     });
 
     // Issue #2: at 400px beside a document, plan items wrapped to five lines.
