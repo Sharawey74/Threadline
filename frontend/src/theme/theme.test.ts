@@ -215,6 +215,38 @@ describe('where the tokens can be set', () => {
   });
 });
 
+describe('the tokens in use', () => {
+  // A token nothing reads is a value nobody checks, and it invites the next
+  // change to land in the wrong place.
+  it('reads every token theme.css declares', () => {
+    const code = scanned.map(({ text }) => text).join('\n');
+    const tailwind = all.filter((b) => b.file === 'workbench/theme.css' && b.context === '@theme');
+    const readByTailwind = new Set(tailwind.flatMap((b) => b.decls.map((d) => d.prop)));
+    const theme = all.filter((b) => b.file === 'workbench/theme.css');
+    const css = theme.flatMap((b) => b.decls.map((d) => d.value)).join('\n');
+
+    const unread = [...new Set(theme.flatMap((b) => b.decls.map((d) => d.prop)))]
+      .filter((prop) => prop.startsWith('--') && !readByTailwind.has(prop))
+      // Topic hues are read through a template: var(--t${topic}).
+      .filter((prop) => !(HUES.includes(prop) && code.includes('var(--t${')))
+      .filter((prop) => {
+        const read = new RegExp(`var\\(\\s*${prop}(?![A-Za-z0-9_-])`);
+        return !read.test(code) && !read.test(css);
+      });
+    expect(unread).toEqual([]);
+  });
+
+  it('draws every focus ring in the brand colour', () => {
+    const rings = all.flatMap((b) =>
+      b.decls
+        .filter((d) => /^outline(-color)?$/.test(d.prop) && !/^(none|0)$/.test(d.value))
+        .map((d) => `${b.file} ${b.context}: ${d.value}`),
+    );
+    expect(rings.length).toBeGreaterThan(0);
+    expect(rings.filter((r) => !r.endsWith('solid var(--brand)'))).toEqual([]);
+  });
+});
+
 describe('the page behind the shell', () => {
   // main.go makes the webview transparent so the window takes the shell's
   // 22px radius. Anything painted under .sh fills those corners back in.
@@ -268,6 +300,14 @@ describe.each([
     for (const hue of HUES) {
       const ratio = contrast(colour(hue), colour('--card'));
       expect(ratio, `${hue} on --card is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  // A focus ring is a non-text mark too, and it can land on any surface.
+  it('the focus ring clears 3:1 on all five surfaces', () => {
+    for (const surface of SURFACES) {
+      const ratio = contrast(colour('--brand'), colour(surface));
+      expect(ratio, `--brand on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
     }
   });
 });
