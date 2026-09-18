@@ -168,6 +168,16 @@ func TestOutlineProgressCountsSectionsAndPages(t *testing.T) {
 		t.Errorf("after moving a tick: %+v, want 4 sections and 18 pages", got)
 	}
 
+	// The denominator is the recorded total, not the sum of the ranges: with
+	// four pages of front matter before the first section, they differ.
+	front := Outline{Total: 49, Sections: []OutlineSection{
+		{Title: "Part one", Page: 5, Checked: true},
+		{Title: "Part two", Page: 30},
+	}}
+	if got := front.Progress(); got.Pages != 49 || got.PagesDone != 25 {
+		t.Errorf("with front matter: %+v, want 25 of 49 pages", got)
+	}
+
 	// With no total there is no page figure at all, not a partial one (C5).
 	o.Total = 0
 	want = OutlineProgress{SectionsDone: 4, Sections: 9}
