@@ -71,6 +71,25 @@ async function railReady() {
 }
 
 describe('the workbench', () => {
+  // Issue #26: the first render in a file is the cold one, and on a loaded
+  // machine (CI's two cores, parallel test files) it ran past waitFor's 1 s
+  // default. A bridge that answers slowly is the same case made repeatable.
+  it('waits for a slow first read of the career folder', async () => {
+    const mock = new MockIPC();
+    const topics = mock.getTopics.bind(mock);
+    vi.spyOn(mock, 'getTopics').mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            resolve(topics());
+          }, 1500),
+        ),
+    );
+    setIPC(mock);
+    render(<Workbench />);
+    await railReady();
+  });
+
   it('shows the checklist once the plan loads', async () => {
     const user = userEvent.setup();
     render(<Workbench />);

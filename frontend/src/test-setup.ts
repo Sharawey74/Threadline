@@ -1,5 +1,12 @@
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
+
+// How long findBy* and waitFor wait before failing. The default, 1 s, is
+// less than a file's first, cold render takes on a loaded machine - CI's two
+// cores running test files in parallel - and that failed at random (issue
+// #26). 4 s stays under vitest's 5 s test timeout, so a real hang still fails
+// as a timeout of the query that was waiting, with its DOM printed.
+configure({ asyncUtilTimeout: 4000 });
 
 // Testing Library registers its own cleanup only when vitest runs with
 // globals enabled. This project keeps globals off - every import explicit - so
