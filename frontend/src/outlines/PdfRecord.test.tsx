@@ -2,9 +2,39 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
+import { setIPC } from '../ipc';
 import type { Artifact, OutlineView } from '../ipc';
+import { MockIPC } from '../ipc/mock';
 
+import { PdfPane } from './PdfPane';
 import { PdfRecord } from './PdfRecord';
+
+// Every non-test component in this folder, as text.
+const sources = import.meta.glob(['./*.tsx', '!./*.test.tsx'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+const STRIPPED = [
+  'Edge PDF Sync',
+  'Edge instance listener',
+  'REVISION CADENCE',
+  'Retention rate',
+  'outline verified',
+  'SYS-601',
+  'v7.2 Engine Specification',
+  'CURRENT BOOKMARK',
+];
+
+// ACID has no outline in the mock.
+const acid: Artifact = {
+  id: 3,
+  path: '02 - Databases & Storage/ACID.pdf',
+  title: 'ACID',
+  ext: '.pdf',
+  isPlanFile: false,
+};
 
 const artifact: Artifact = {
   id: 1,
@@ -126,48 +156,94 @@ describe('the PDF record', () => {
     expect(document.body.textContent).not.toMatch(/of 0/);
   });
 
+  // Through PdfPane, which is what ships: an error state added in the wrapper
+  // would never show up in a test of the record alone.
   it('a file with no outline invites one and is not an error', async () => {
     const user = userEvent.setup();
-    const { onOpen, onAddOutline } = record(none);
+    const mock = new MockIPC();
+    const open = vi.spyOn(mock, 'openExternal');
+    setIPC(mock);
+    render(<PdfPane artifact={acid} />);
 
+    const add = await screen.findByRole('button', { name: 'Add outline' });
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
 
-    await user.click(screen.getByRole('button', { name: 'Add outline' }));
-    expect(onAddOutline).toHaveBeenCalledOnce();
-
     // Still opens, at page 1: untracked, not unusable.
     await user.click(screen.getByRole('button', { name: 'Open in Edge' }));
-    expect(onOpen).toHaveBeenCalledWith(0);
+    expect(open).toHaveBeenCalledWith(3, 0);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    // The invitation leads to the import screen.
+    await user.click(add);
+    expect(screen.getByLabelText('Table of contents')).toBeTruthy();
   });
 
-  it('carries none of the stripped mockup labels', () => {
-    const stripped = [
-      'Edge PDF Sync',
-      'Edge instance listener',
-      'REVISION CADENCE',
-      'Retention rate',
-      'outline verified',
-      'SYS-601',
-      'v7.2 Engine Specification',
-      'CURRENT BOOKMARK',
+  // An alert is kept for a real failure, so its absence above means something.
+  it('says why when Edge could not be opened', async () => {
+    const user = userEvent.setup();
+    const mock = new MockIPC();
+    vi.spyOn(mock, 'openExternal').mockRejectedValue(new Error('microsoft Edge was not found'));
+    setIPC(mock);
+    render(<PdfPane artifact={acid} />);
+
+    await user.click(await screen.findByRole('button', { name: 'Open in Edge' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Edge was not found/);
+  });
+
+  it('carries none of the stripped mockup labels', async () => {
+    const hits: string[] = [];
+    const check = (where: string) => {
+      const text = readable().join('\n').toLowerCase();
+      for (const label of STRIPPED) {
+        if (text.includes(label.toLowerCase())) hits.push(`${label} in ${where}`);
+      }
+    };
+
+    // The record in every state it has.
+    const states: [string, OutlineView, ReadonlySet<number>?][] = [
+      ['no outline', none],
+      ['some ticked', outline([0, 1, 2, 3])],
+      ['all ticked', outline([0, 1, 2, 3, 4, 5, 6, 7, 8])],
+      ['no total', outline([0, 1], 0)],
+      ['pending', outline([0]), new Set([1])],
     ];
-    for (const view of [outline([0, 1, 2, 3]), none]) {
+    for (const [where, view, pending] of states) {
       const { unmount } = render(
         <PdfRecord
           artifact={artifact}
           view={view}
+          pending={pending}
           onOpen={vi.fn()}
           onTick={vi.fn()}
           onAddOutline={vi.fn()}
         />,
       );
-      const text = readable().join('\n').toLowerCase();
-      for (const label of stripped) {
-        expect(text, label).not.toContain(label.toLowerCase());
-      }
+      check(where);
       unmount();
     }
+
+    // The pane that ships, for a PDF with an outline and one without.
+    setIPC(new MockIPC());
+    for (const pdf of [artifact, acid]) {
+      const { unmount } = render(<PdfPane artifact={pdf} />);
+      await screen.findByRole('heading', { level: 1, name: pdf.title });
+      check(`PdfPane ${pdf.title}`);
+      unmount();
+    }
+
+    // And the source, for a label shown only in a state not rendered above.
+    for (const [file, source] of Object.entries(sources)) {
+      const code = source
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '')
+        .toLowerCase();
+      for (const label of STRIPPED) {
+        if (code.includes(label.toLowerCase())) hits.push(`${label} in ${file}`);
+      }
+    }
+
+    expect(hits).toEqual([]);
   });
 
   it('names the topic the file sits in', () => {
