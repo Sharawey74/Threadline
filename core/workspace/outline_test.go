@@ -113,15 +113,18 @@ func TestReimportPreservesTicksByTitle(t *testing.T) {
 		}
 	}
 
-	// Re-import: pages moved, one title retyped with a different dash and
-	// spacing, one removed, one renamed in case only, one new.
+	// Re-import in a new order, so no title keeps its old position: ticks
+	// must follow titles, not slots. One title retyped with a different dash
+	// and spacing; "preface", differing only in case, comes before "Preface"
+	// so a case-blind match would hand it Preface's tick.
 	second := []plan.OutlineSection{
-		{Title: "Preface", Page: 3},
+		{Title: "preface", Page: 1},
+		{Title: "Joins", Page: 3},
 		{Title: "Review", Page: 7},
+		{Title: "Preface", Page: 9},
+		{Title: "Sorting", Page: 11},
 		{Title: " Indexes – Part 1 ", Page: 12},
 		{Title: "Review", Page: 20},
-		{Title: "preface", Page: 25},
-		{Title: "Sorting", Page: 30},
 	}
 	if err := svc.SaveOutline(id, plan.Outline{Sections: second}); err != nil {
 		t.Fatal(err)
@@ -138,12 +141,12 @@ func TestReimportPreservesTicksByTitle(t *testing.T) {
 		pages = append(pages, s.Page)
 	}
 	// Repeated titles match in order: the first Review was unticked, the
-	// second ticked. "preface" differs in case, so it is new.
-	wantTicks := []bool{true, false, true, true, false, false}
+	// second ticked. "preface" and "Sorting" are new.
+	wantTicks := []bool{false, false, false, true, false, true, true}
 	if !slices.Equal(ticks, wantTicks) {
 		t.Errorf("ticks after re-import = %v, want %v", ticks, wantTicks)
 	}
-	if !slices.Equal(pages, []int{3, 7, 12, 20, 25, 30}) {
+	if !slices.Equal(pages, []int{1, 3, 7, 9, 11, 12, 20}) {
 		t.Errorf("pages after re-import = %v, want the re-imported pages", pages)
 	}
 }
