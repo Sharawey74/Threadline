@@ -471,6 +471,11 @@ export class MockIPC implements IPC {
     if (sections.some((s) => s.title === '')) {
       return Promise.reject(new Error('a section has no title'));
     }
+    // Identical lines cannot be told apart when ticked; Go refuses them too.
+    const keys = sections.map((s) => `${s.title}@${String(s.page)}`);
+    if (new Set(keys).size !== keys.length) {
+      return Promise.reject(new Error('two sections have the same title and page'));
+    }
     this.outlines[artifactId] = { total: outline.total, sections };
     return delay(undefined);
   }
