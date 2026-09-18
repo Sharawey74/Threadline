@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -140,6 +140,21 @@ describe('the PDF record', () => {
     expect(onTick).toHaveBeenCalledWith(4, true);
     await user.click(screen.getByRole('checkbox', { name: 'Scalability' }));
     expect(onTick).toHaveBeenLastCalledWith(0, false);
+    cleanup();
+
+    // Every section ticked: nothing is next, and Edge opens at the start.
+    record(outline([0, 1, 2, 3, 4, 5, 6, 7, 8]));
+    expect(screen.getByText('9 of 9 sections')).toBeTruthy();
+    expect(screen.queryByText('NEXT')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open in Edge' })).toBeTruthy();
+    cleanup();
+
+    // No page total: the section count stands, and no page figure appears.
+    // Matched per element: body text runs "pages" into the next heading, so
+    // a word-boundary search of the whole body would miss it.
+    record(outline([0, 1, 2, 3], 0));
+    expect(screen.getByText('4 of 9 sections')).toBeTruthy();
+    expect(screen.queryByText(/\bpages\b/)).toBeNull();
   });
 
   it('labels nothing NEXT once every section is ticked', () => {
@@ -152,7 +167,7 @@ describe('the PDF record', () => {
   it('shows no page figure when no page total was recorded', () => {
     record(outline([0, 1, 2, 3], 0));
     expect(screen.getByText('4 of 9 sections')).toBeTruthy();
-    expect(document.body.textContent).not.toMatch(/\bpages\b/);
+    expect(screen.queryByText(/\bpages\b/)).toBeNull();
     expect(document.body.textContent).not.toMatch(/of 0/);
   });
 
