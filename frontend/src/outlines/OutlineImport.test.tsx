@@ -61,19 +61,35 @@ describe('the outline import screen', () => {
     expect(screen.getByRole('spinbutton', { name: 'Total pages' })).toBeTruthy();
   });
 
-  it('offers no mode selector', () => {
+  // The property, whatever the control is built from: nothing on the screen
+  // names one of the three modes, and nothing offers a one-of-many choice.
+  // Checking roles one at a time missed a switch; this checks every element.
+  it('offers no mode selector', async () => {
+    const user = userEvent.setup();
     render(<OutlineImport artifact={acid} initial={empty} onSaved={vi.fn()} onCancel={vi.fn()} />);
+    // With rows too, so controls that appear only after a paste are covered.
+    await paste(user, '1. Preface.... 1\n2. Storage....... 9');
+    await waitFor(() => {
+      expect(rows()).toHaveLength(2);
+    });
 
-    expect(screen.queryAllByRole('radio')).toHaveLength(0);
-    expect(screen.queryAllByRole('radiogroup')).toHaveLength(0);
-    expect(screen.queryAllByRole('combobox')).toHaveLength(0);
-    for (const name of [/trackable checklist/i, /note anchors only/i, /^both/i]) {
-      expect(screen.queryByRole('button', { name })).toBeNull();
-      expect(screen.queryByRole('checkbox', { name })).toBeNull();
-      expect(screen.queryByRole('option', { name })).toBeNull();
-      expect(screen.queryByRole('tab', { name })).toBeNull();
-      expect(screen.queryByText(name)).toBeNull();
+    const modes = /trackable checklist|note anchors only|\bboth\b/i;
+    const names: string[] = [];
+    for (const el of document.body.querySelectorAll('*')) {
+      names.push(el.textContent ?? '');
+      for (const attr of ['aria-label', 'title', 'placeholder', 'value', 'alt']) {
+        names.push(el.getAttribute(attr) ?? '');
+      }
+      for (const ref of (el.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
+        names.push(ref === '' ? '' : (document.getElementById(ref)?.textContent ?? ''));
+      }
     }
+    expect(names.filter((n) => modes.test(n))).toEqual([]);
+
+    const choices = document.querySelectorAll(
+      'input[type="radio"], [role="radio"], [role="radiogroup"], [role="menuitemradio"], select',
+    );
+    expect([...choices].map((el) => el.outerHTML)).toEqual([]);
   });
 
   it('edits and reordering reach the saved outline', async () => {
