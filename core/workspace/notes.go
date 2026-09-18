@@ -68,7 +68,9 @@ func sectionEnd(c, title string) (int, bool) {
 		if inSection && headingRe.MatchString(bare) {
 			return offset, true
 		}
-		if bare == "## "+title {
+		// Compared with its whitespace folded, so "##  Joins" is still Joins;
+		// the line itself is never rewritten.
+		if strings.Join(strings.Fields(bare), " ") == "## "+title {
 			inSection = true
 		}
 		offset += len(line)

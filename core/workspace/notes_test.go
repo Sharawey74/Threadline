@@ -60,6 +60,40 @@ func TestNoteLandsUnderItsSectionHeading(t *testing.T) {
 	if want := "# Notes\n\n## Joins\n\nhash join\n\nmerge join\n"; string(got) != want {
 		t.Fatalf("append to the last section =\n%q\nwant\n%q", got, want)
 	}
+
+	// A file the user wrote by hand, in no standard layout: prose above the
+	// first heading, CRLF lines, a heading with two spaces and trailing
+	// spaces, no blank line after a heading, runs of blank lines, and a
+	// sub-heading inside a section. Only the insertion may change it.
+	messy := "Read these first.\r\n\r\n##  Joins  \r\nhash join\n\n\n## Indexes\nB-trees.\n### sub\ndetail   \n\n\n## Sorting\nmerge\n"
+	for _, tc := range []struct {
+		section, text, before string
+	}{
+		// Under Indexes: after its sub-heading, before Sorting.
+		{"Indexes", "LSM trees.", "## Sorting"},
+		// The two-space heading is still Joins.
+		{"Joins", "merge join", "## Indexes"},
+	} {
+		write(t, path, messy)
+		if err := svc.AppendNote(id, tc.section, tc.text); err != nil {
+			t.Fatal(err)
+		}
+		got, _ = os.ReadFile(path)
+		at := strings.Index(messy, tc.before)
+		if want := messy[:at] + tc.text + "\n\n" + messy[at:]; string(got) != want {
+			t.Errorf("append to %s in a hand-written file =\n%q\nwant\n%q", tc.section, got, want)
+		}
+	}
+
+	// A new heading goes after everything, and everything before it stays.
+	write(t, path, messy)
+	if err := svc.AppendNote(id, "Graphs", "BFS"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = os.ReadFile(path)
+	if want := messy + "\n## Graphs\n\nBFS\n"; string(got) != want {
+		t.Errorf("new heading in a hand-written file =\n%q\nwant\n%q", got, want)
+	}
 }
 
 func TestNoteCannotBreakTheNotesFile(t *testing.T) {
