@@ -52,15 +52,24 @@ func TestContractMatchesTheFrontend(t *testing.T) {
 	}
 }
 
-// contractSize is the contract after the 9 Sep 2026 reduction removed the five
-// commands that observed the user. Growing it is allowed; doing so silently is
-// not, so a change here has to be a deliberate edit to this number.
-const contractSize = 10
+// contract is every bound command, by name. The 9 Sep 2026 reduction left
+// ten; Phase 8 added the six outline commands (16 Sep 2026). Growing it is
+// allowed; doing so silently is not, so a change here has to be a deliberate
+// edit to this list. AppendNote is shared with Phase 10's capture, which keeps
+// Phases 9-11 under the C2 ceiling.
+var contract = []string{
+	"ChooseCareerRoot", "GetMaterial", "GetPlan", "GetReconciliation", "GetTopics",
+	"GetWorkspace", "ReadArtifact", "SetCareerRoot", "TickItem", "WriteArtifact",
+	"AppendNote", "GetOutline", "OpenExternal", "ParseOutline", "SaveOutline", "TickSection",
+}
 
-func TestContractIsTenCommands(t *testing.T) {
-	bound := boundCommands()
-	if len(bound) != contractSize {
-		t.Errorf("%d commands bound, want %d: %v", len(bound), contractSize, bound)
+func TestContractIsSixteenCommands(t *testing.T) {
+	want := slices.Sorted(slices.Values(contract))
+	if bound := boundCommands(); !slices.Equal(bound, want) {
+		t.Errorf("bound %d commands %v, want these %d: %v", len(bound), bound, len(want), want)
+	}
+	if len(want) != 16 {
+		t.Errorf("the pinned contract lists %d commands, want 16", len(want))
 	}
 }
 
@@ -141,10 +150,10 @@ func TestQueriesReturnDataAndAnError(t *testing.T) {
 
 // isCommandName reports whether a method is a command rather than a query.
 //
-// Queries are the Get* family plus ReadArtifact. Everything else changes
-// something.
+// Queries are the Get* family plus ReadArtifact and ParseOutline, which reads
+// only the text it is given. Everything else changes something.
 func isCommandName(name string) bool {
-	return !strings.HasPrefix(name, "Get") && name != "ReadArtifact"
+	return !strings.HasPrefix(name, "Get") && name != "ReadArtifact" && name != "ParseOutline"
 }
 
 // boundCommands lists every exported method Wails will bind, excluding the

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { ipc } from '../ipc';
 import type { Artifact, Item, Plan } from '../ipc';
+import { PdfPane } from '../outlines/PdfPane';
 import { Checklist } from '../plan/Checklist';
 import { MarkdownViewer } from '../viewers/MarkdownViewer';
 import { ContextRail } from '../shell/ContextRail';
@@ -449,14 +450,10 @@ function ChecklistPane({
 
 function ArtifactPane({ artifact, mode }: { artifact: Artifact; mode: ViewMode }) {
   // Checked before anything is read. Threadline renders no PDF, so fetching one
-  // would base64 a whole study guide across the bridge to display nothing.
+  // would base64 a whole study guide across the bridge to display nothing. A
+  // PDF shows its record instead: the outline sidecar and the way into Edge.
   if (artifact.ext.toLowerCase() === '.pdf') {
-    return (
-      <Empty
-        title={`${artifact.title} is a PDF`}
-        hint="Threadline does not render PDFs. Open it in Edge, which can annotate it."
-      />
-    );
+    return <PdfPane artifact={artifact} />;
   }
   return <DocumentPane artifact={artifact} mode={mode} />;
 }

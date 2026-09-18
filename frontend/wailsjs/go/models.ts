@@ -79,6 +79,91 @@ export namespace plan {
 	        this.notes = source["notes"];
 	    }
 	}
+	export class OutlineSection {
+	    title: string;
+	    page: number;
+	    checked: boolean;
+	    lineNo: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new OutlineSection(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.title = source["title"];
+	        this.page = source["page"];
+	        this.checked = source["checked"];
+	        this.lineNo = source["lineNo"];
+	    }
+	}
+	export class Outline {
+	    total: number;
+	    sections: OutlineSection[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Outline(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.total = source["total"];
+	        this.sections = this.convertValues(source["sections"], OutlineSection);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class OutlineProgress {
+	    sectionsDone: number;
+	    sections: number;
+	    pagesDone: number;
+	    pages: number;
+	    pagesKnown: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new OutlineProgress(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sectionsDone = source["sectionsDone"];
+	        this.sections = source["sections"];
+	        this.pagesDone = source["pagesDone"];
+	        this.pages = source["pages"];
+	        this.pagesKnown = source["pagesKnown"];
+	    }
+	}
+	
+	export class PageRange {
+	    from: number;
+	    to: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PageRange(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.from = source["from"];
+	        this.to = source["to"];
+	    }
+	}
 	export class Section {
 	    number: number;
 	    title: string;
@@ -190,6 +275,42 @@ export namespace workspace {
 	        this.kind = source["kind"];
 	        this.body = source["body"];
 	    }
+	}
+	export class OutlineView {
+	    exists: boolean;
+	    outline: plan.Outline;
+	    ranges: plan.PageRange[];
+	    progress: plan.OutlineProgress;
+	
+	    static createFrom(source: any = {}) {
+	        return new OutlineView(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.exists = source["exists"];
+	        this.outline = this.convertValues(source["outline"], plan.Outline);
+	        this.ranges = this.convertValues(source["ranges"], plan.PageRange);
+	        this.progress = this.convertValues(source["progress"], plan.OutlineProgress);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

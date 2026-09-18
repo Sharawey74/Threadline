@@ -71,6 +71,25 @@ async function railReady() {
 }
 
 describe('the workbench', () => {
+  // Issue #26: the first render in a file is the cold one, and on a loaded
+  // machine (CI's two cores, parallel test files) it ran past waitFor's 1 s
+  // default. A bridge that answers slowly is the same case made repeatable.
+  it('waits for a slow first read of the career folder', async () => {
+    const mock = new MockIPC();
+    const topics = mock.getTopics.bind(mock);
+    vi.spyOn(mock, 'getTopics').mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => {
+            resolve(topics());
+          }, 1500),
+        ),
+    );
+    setIPC(mock);
+    render(<Workbench />);
+    await railReady();
+  });
+
   it('shows the checklist once the plan loads', async () => {
     const user = userEvent.setup();
     render(<Workbench />);
@@ -131,11 +150,12 @@ describe('the workbench', () => {
     });
 
     // Threadline renders no PDF (9 Sep 2026). Opening one must not read it
-    // either: the bytes would cross the bridge to be thrown away. Nothing
-    // launches Edge yet (Phase 8), so the pane must not claim that it does.
+    // either: the bytes would cross the bridge to be thrown away. It shows the
+    // PDF's record instead, and hands the file to Edge (Phase 8).
     it('does not render or read a PDF', async () => {
       const mock = new MockIPC();
       const read = vi.spyOn(mock, 'readArtifact');
+      const open = vi.spyOn(mock, 'openExternal');
       setIPC(mock);
       const user = userEvent.setup();
       render(<Workbench />);
@@ -143,9 +163,54 @@ describe('the workbench', () => {
 
       await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
 
-      expect(screen.getByText('Fundamentals v3 is a PDF')).toBeTruthy();
-      expect(screen.queryByText(/opens in Edge/)).toBeNull();
+      // The record, with Edge opening at the first unticked section.
+      const edge = await screen.findByRole('button', { name: 'Open in Edge at page 13' });
+      expect(screen.getByRole('heading', { level: 1, name: 'Fundamentals v3' })).toBeTruthy();
+      await user.click(edge);
+      expect(open).toHaveBeenCalledWith(1, 13);
       expect(read).not.toHaveBeenCalled();
+    });
+
+    it('ticks a section from the PDF record and moves both counts', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await railReady();
+
+      await user.click(screen.getByRole('button', { name: /Fundamentals v3/ }));
+      expect(await screen.findByText('4 of 9 sections')).toBeTruthy();
+      expect(screen.getByText('12 of 49 pages')).toBeTruthy();
+
+      // DNS runs from page 13 to 18: six pages.
+      await user.click(screen.getByRole('checkbox', { name: 'DNS' }));
+      expect(await screen.findByText('5 of 9 sections')).toBeTruthy();
+      expect(screen.getByText('18 of 49 pages')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Open in Edge at page 19' })).toBeTruthy();
+    });
+
+    it('adds an outline to a PDF that has none', async () => {
+      const user = userEvent.setup();
+      render(<Workbench />);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /ACID/ })).toBeTruthy();
+      });
+
+      await user.click(screen.getByRole('button', { name: /ACID/ }));
+      await user.click(await screen.findByRole('button', { name: 'Add outline' }));
+
+      await user.click(screen.getByLabelText('Table of contents'));
+      await user.paste('1. Atomicity....... 1\n2. Isolation levels....... 6');
+      await waitFor(() => {
+        expect(
+          screen.getByRole('spinbutton', { name: 'Start page of Isolation levels' }),
+        ).toBeTruthy();
+      });
+      await user.type(screen.getByRole('spinbutton', { name: 'Total pages' }), '10');
+      await user.click(screen.getByRole('button', { name: 'Save outline' }));
+
+      // Back on the record, reading the saved outline.
+      expect(await screen.findByText('0 of 2 sections')).toBeTruthy();
+      expect(screen.getByText('0 of 10 pages')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Open in Edge at page 1' })).toBeTruthy();
     });
 
     // The whole reason tabs exist: comparing a plan item against the document

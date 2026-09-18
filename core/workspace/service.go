@@ -31,11 +31,13 @@ type Service struct {
 	store       *store.Store
 	snapshotDir string
 	now         func() time.Time
+	// launch starts Edge with its arguments. Tests replace it.
+	launch func(args []string) error
 }
 
 // NewService wires a workspace over a career root and a store.
 func NewService(root *Root, st *store.Store, snapshotDir string) *Service {
-	return &Service{root: root, store: st, snapshotDir: snapshotDir, now: time.Now}
+	return &Service{root: root, store: st, snapshotDir: snapshotDir, now: time.Now, launch: launchEdge}
 }
 
 // Artifact is a file as the frontend sees it.

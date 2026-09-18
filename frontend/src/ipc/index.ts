@@ -5,12 +5,23 @@
 // mock with no Go present, and swapping Wails for something else touches this
 // directory and nothing more.
 //
-// The contract is 10: 6 queries with no side effects, 4 commands that return
-// only an error, plus 2 events. Over 20 means the boundary is leaking (C2) —
-// and adding an eleventh here is the moment to ask whether the frontend is
+// The contract is 16: 8 queries with no side effects, 8 commands that return
+// only an error, plus 2 events. Phase 8 added the six outline commands to the
+// ten left by the 9 Sep reduction. Over 20 means the boundary is leaking (C2),
+// and adding a seventeenth here is the moment to ask whether the frontend is
 // reaching for something the backend should be deciding.
 
-import type { Artifact, Check, Content, EventName, Plan, Topic, Workspace } from './types';
+import type {
+  Artifact,
+  Check,
+  Content,
+  EventName,
+  Outline,
+  OutlineView,
+  Plan,
+  Topic,
+  Workspace,
+} from './types';
 
 export type * from './types';
 
@@ -31,6 +42,10 @@ export interface IPC {
   /** Never rejects for the ordinary reason of having no folder yet. */
   getWorkspace(): Promise<Workspace>;
   readArtifact(artifactId: number): Promise<Content>;
+  /** Reads pasted text into sections. Saves nothing. */
+  parseOutline(text: string): Promise<Outline>;
+  /** A PDF's outline, or `exists: false` when it has none yet. Never creates one. */
+  getOutline(artifactId: number): Promise<OutlineView>;
 
   // ── Commands ───────────────────────────────────────────────────────
   tickItem(anchor: string, checked: boolean): Promise<void>;
@@ -45,6 +60,14 @@ export interface IPC {
   setCareerRoot(path: string): Promise<void>;
   /** Opens the native folder picker. Resolves to "" when cancelled. */
   chooseCareerRoot(): Promise<string>;
+  /** Writes `<stem>.outline.md` beside the PDF, keeping ticks by title. */
+  saveOutline(artifactId: number, outline: Outline): Promise<void>;
+  /** Ticks one section, named by position and title; refused if the title there changed. */
+  tickSection(artifactId: number, index: number, title: string, checked: boolean): Promise<void>;
+  /** Opens the PDF in Edge, at `page` when it is above 0. */
+  openExternal(artifactId: number, page: number): Promise<void>;
+  /** Adds a note under `## section` in `<stem>.notes.md`. */
+  appendNote(artifactId: number, section: string, text: string): Promise<void>;
 
   // ── Events ─────────────────────────────────────────────────────────
   /** Subscribe to a Go-pushed event. Returns an unsubscribe function. */
@@ -63,8 +86,19 @@ export const CONTRACT = {
     'getReconciliation',
     'readArtifact',
     'getWorkspace',
+    'parseOutline',
+    'getOutline',
   ],
-  commands: ['tickItem', 'writeArtifact', 'setCareerRoot', 'chooseCareerRoot'],
+  commands: [
+    'tickItem',
+    'writeArtifact',
+    'setCareerRoot',
+    'chooseCareerRoot',
+    'saveOutline',
+    'tickSection',
+    'openExternal',
+    'appendNote',
+  ],
   events: ['plan:changed', 'reconcile:drift'],
 } as const;
 

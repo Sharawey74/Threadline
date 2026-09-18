@@ -7,9 +7,9 @@ import { MockIPC } from './mock';
 // §4.1 froze, and hold the mock to behaving like the bridge it stands in for.
 
 describe('the frozen contract', () => {
-  it('is 6 queries and 4 commands', () => {
-    expect(CONTRACT.queries).toHaveLength(6);
-    expect(CONTRACT.commands).toHaveLength(4);
+  it('is 8 queries and 8 commands', () => {
+    expect(CONTRACT.queries).toHaveLength(8);
+    expect(CONTRACT.commands).toHaveLength(8);
   });
 
   it('stays under the C2 ceiling', () => {
@@ -22,7 +22,11 @@ describe('the frozen contract', () => {
     // were deleted, taking startSession, endSession, getBudgetStatus,
     // savePosition and getPosition with them. The headroom is for outlines and
     // Files, and each addition should still have to argue for itself.
-    expect(total).toBe(10);
+    //
+    // Then 10 → 16 in Phase 8 (16 Sep 2026): parseOutline, getOutline,
+    // saveOutline, tickSection, openExternal and appendNote. Phase 10 reuses
+    // appendNote, so Phases 9 and 11 still land under the ceiling.
+    expect(total).toBe(16);
     // C2 is a tripwire, and a tripwire nobody checks is decoration. Adding a
     // command is the moment to ask whether the frontend is reaching
     // for something the backend should be deciding.

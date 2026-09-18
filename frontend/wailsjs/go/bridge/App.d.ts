@@ -4,9 +4,13 @@ import {workspace} from '../models';
 import {plan} from '../models';
 import {bridge} from '../models';
 
+export function AppendNote(arg1:number,arg2:string,arg3:string):Promise<void>;
+
 export function ChooseCareerRoot():Promise<string>;
 
 export function GetMaterial(arg1:string):Promise<Array<workspace.Artifact>>;
+
+export function GetOutline(arg1:number):Promise<workspace.OutlineView>;
 
 export function GetPlan():Promise<plan.Plan>;
 
@@ -16,10 +20,18 @@ export function GetTopics():Promise<Array<plan.Topic>>;
 
 export function GetWorkspace():Promise<bridge.Workspace>;
 
+export function OpenExternal(arg1:number,arg2:number):Promise<void>;
+
+export function ParseOutline(arg1:string):Promise<plan.Outline>;
+
 export function ReadArtifact(arg1:number):Promise<workspace.Content>;
+
+export function SaveOutline(arg1:number,arg2:plan.Outline):Promise<void>;
 
 export function SetCareerRoot(arg1:string):Promise<void>;
 
 export function TickItem(arg1:string,arg2:boolean):Promise<void>;
+
+export function TickSection(arg1:number,arg2:number,arg3:string,arg4:boolean):Promise<void>;
 
 export function WriteArtifact(arg1:number,arg2:string):Promise<void>;
