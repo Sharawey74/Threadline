@@ -76,6 +76,10 @@ func (s *Service) SaveOutline(id int64, o plan.Outline) error {
 		}
 		clean.Sections = append(clean.Sections, plan.OutlineSection{Title: title, Page: sec.Page})
 	}
+	if i, j, dup := duplicate(clean.Sections); dup {
+		return fmt.Errorf("sections %d and %d are both %q on page %d; give one a different title or page",
+			i+1, j+1, clean.Sections[i].Title, clean.Sections[i].Page)
+	}
 
 	ticks, err := existingTicks(path)
 	if err != nil {
@@ -125,6 +129,14 @@ func (s *Service) TickSection(id int64, index int, title string, checked bool) e
 	if index < 0 || index >= len(o.Sections) || o.Sections[index].Title != cleanTitle(title) {
 		return fmt.Errorf("no section %d titled %q in the outline", index, title)
 	}
+	// Identical lines share an anchor, so the write would land on the first
+	// of them, whichever was meant. Refuse rather than tick the wrong one.
+	for j, other := range o.Sections {
+		if j != index && other.Title == o.Sections[index].Title && other.Page == o.Sections[index].Page {
+			return fmt.Errorf("the outline lists %q on page %d twice; edit it so each line is unique",
+				other.Title, other.Page)
+		}
+	}
 	_, err = plan.TickSection(path, o.Sections[index], checked)
 	return err
 }
@@ -133,4 +145,21 @@ func (s *Service) TickSection(id int64, index int, title string, checked bool) e
 // dashes as the parser sees them, whitespace runs folded to one space.
 func cleanTitle(title string) string {
 	return strings.Join(strings.Fields(plan.StripMarkup(plan.Normalise(title))), " ")
+}
+
+// duplicate finds the first two sections with the same title and page.
+func duplicate(sections []plan.OutlineSection) (int, int, bool) {
+	type key struct {
+		title string
+		page  int
+	}
+	seen := map[key]int{}
+	for j, s := range sections {
+		k := key{s.Title, s.Page}
+		if i, ok := seen[k]; ok {
+			return i, j, true
+		}
+		seen[k] = j
+	}
+	return 0, 0, false
 }

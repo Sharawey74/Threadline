@@ -227,3 +227,35 @@ func TestScanNeverCreatesOutlines(t *testing.T) {
 		t.Errorf("after one import, outlines = %v, want exactly one", found)
 	}
 }
+
+// Two identical lines have the same anchor, so the one-byte path cannot tell
+// them apart: ticking the second would tick the first. Such an outline is
+// refused on save, and a hand-edited one is refused on tick.
+func TestIdenticalSectionsAreRefusedRatherThanMisticked(t *testing.T) {
+	svc, dir := workspace(t)
+	id := pdfID(t, svc)
+
+	twice := []plan.OutlineSection{{Title: "Review", Page: 7}, {Title: "Review", Page: 7}}
+	if err := svc.SaveOutline(id, plan.Outline{Sections: twice}); err == nil {
+		t.Error("an outline with two identical sections was saved")
+	}
+
+	// The same title on different pages is fine.
+	if err := svc.SaveOutline(id, plan.Outline{Sections: []plan.OutlineSection{
+		{Title: "Review", Page: 7}, {Title: "Review", Page: 20},
+	}}); err != nil {
+		t.Fatalf("repeated title on different pages refused: %v", err)
+	}
+
+	// A hand-edited file with a duplicate: ticking either is refused, and the
+	// file does not change.
+	path := filepath.Join(dir, scan.StudyDir, "06 - System Design", "paper.outline.md")
+	write(t, path, "# Outline\n\n- [ ] Review — p.7\n- [ ] Review — p.7\n")
+	before, _ := os.ReadFile(path)
+	if err := svc.TickSection(id, 1, "Review", true); err == nil {
+		t.Error("ticking one of two identical sections succeeded")
+	}
+	if after, _ := os.ReadFile(path); !bytes.Equal(after, before) {
+		t.Errorf("a refused tick changed the outline:\n%s", after)
+	}
+}
