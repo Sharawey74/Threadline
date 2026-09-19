@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setIPC } from '../ipc';
 import type { Artifact, Outline } from '../ipc';
 import { MockIPC } from '../ipc/mock';
+import { readable, sourceHits } from '../test-utils';
 
 import { OutlineImport } from './OutlineImport';
 
@@ -39,16 +40,6 @@ const sources = import.meta.glob(['./*.{ts,tsx}', '!./*.test.{ts,tsx}'], {
   import: 'default',
   eager: true,
 }) as Record<string, string>;
-
-/** Source with comments removed and whitespace folded, so a wrapped name still reads whole. */
-function foldSource(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1')
-    .replace(/\{' '\}/g, ' ')
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
-}
 
 let mock: MockIPC;
 
@@ -100,16 +91,7 @@ describe('the outline import screen', () => {
     const user = userEvent.setup();
     const found: string[] = [];
     const check = (state: string) => {
-      for (const el of document.body.querySelectorAll('*')) {
-        const names = [el.textContent ?? ''];
-        for (const attr of ['aria-label', 'title', 'placeholder', 'value', 'alt']) {
-          names.push(el.getAttribute(attr) ?? '');
-        }
-        for (const ref of (el.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
-          if (ref !== '') names.push(document.getElementById(ref)?.textContent ?? '');
-        }
-        for (const name of names.filter((n) => MODES.test(n))) found.push(`${state}: "${name}"`);
-      }
+      for (const name of readable().filter((n) => MODES.test(n))) found.push(`${state}: "${name}"`);
       for (const el of document.querySelectorAll(CHOICES)) found.push(`${state}: ${el.outerHTML}`);
     };
 
@@ -136,13 +118,7 @@ describe('the outline import screen', () => {
     // The source of every component and helper here, for a state not
     // rendered above. Comments are dropped: the docblock names the modes to
     // say they are gone.
-    for (const [file, source] of Object.entries(sources)) {
-      const code = foldSource(source);
-      if (MODES.test(code)) found.push(`${file}: names a mode`);
-      for (const pattern of SOURCE_CHOICES) {
-        if (code.includes(pattern)) found.push(`${file}: ${pattern}`);
-      }
-    }
+    found.push(...sourceHits(sources, [MODES, ...SOURCE_CHOICES]));
 
     expect(found).toEqual([]);
   });
