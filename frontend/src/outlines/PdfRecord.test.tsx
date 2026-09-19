@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -106,6 +106,24 @@ function record(view: OutlineView, handlers: Partial<Parameters<typeof PdfRecord
   return props;
 }
 
+/**
+ * Waits until every bridge call the spies have seen has settled, including
+ * calls those calls set off, and React has rendered the result. Anything the
+ * screen does in response to an action has happened once this returns.
+ */
+async function settled(...spies: { mock: { results: { value: unknown }[] } }[]) {
+  let seen = -1;
+  for (;;) {
+    const pending = spies.flatMap((s) => s.mock.results.map((r) => r.value));
+    if (pending.length === seen) return;
+    seen = pending.length;
+    await act(async () => {
+      await Promise.allSettled(pending);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+}
+
 /** Every piece of text a person could read or hear, per element. */
 function readable(): string[] {
   const out = [document.body.textContent ?? ''];
@@ -177,6 +195,7 @@ describe('the PDF record', () => {
     const user = userEvent.setup();
     const mock = new MockIPC();
     const open = vi.spyOn(mock, 'openExternal');
+    const read = vi.spyOn(mock, 'getOutline');
     setIPC(mock);
     render(<PdfPane artifact={acid} />);
 
@@ -184,9 +203,11 @@ describe('the PDF record', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
 
-    // Still opens, at page 1: untracked, not unusable.
+    // Still opens, at page 1: untracked, not unusable. Checked once the open
+    // and anything it sets off have finished, not while it is in flight.
     await user.click(screen.getByRole('button', { name: 'Open in Edge' }));
     expect(open).toHaveBeenCalledWith(3, 0);
+    await settled(open, read);
     expect(screen.queryByRole('alert')).toBeNull();
 
     // The invitation leads to the import screen.
