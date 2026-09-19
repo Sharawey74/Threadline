@@ -1,10 +1,11 @@
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { setIPC } from '../ipc';
 import type { Artifact, OutlineView } from '../ipc';
 import { MockIPC } from '../ipc/mock';
+import { readable, settled, sourceHits } from '../test-utils';
 
 import { PdfPane } from './PdfPane';
 import { PdfRecord } from './PdfRecord';
@@ -104,46 +105,6 @@ function record(view: OutlineView, handlers: Partial<Parameters<typeof PdfRecord
   };
   render(<PdfRecord {...props} />);
   return props;
-}
-
-/**
- * Waits until every bridge call the spies have seen has settled, including
- * calls those calls set off, and React has rendered the result. Anything the
- * screen does in response to an action has happened once this returns.
- */
-async function settled(...spies: { mock: { results: { value: unknown }[] } }[]) {
-  let seen = -1;
-  for (;;) {
-    const pending = spies.flatMap((s) => s.mock.results.map((r) => r.value));
-    if (pending.length === seen) return;
-    seen = pending.length;
-    await act(async () => {
-      await Promise.allSettled(pending);
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-  }
-}
-
-/** Source with comments removed and whitespace folded, so a wrapped label still reads whole. */
-function foldSource(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1')
-    .replace(/\{' '\}/g, ' ')
-    .replace(/\s+/g, ' ')
-    .toLowerCase();
-}
-
-/** Every piece of text a person could read or hear, per element. */
-function readable(): string[] {
-  const out = [document.body.textContent ?? ''];
-  for (const el of document.body.querySelectorAll('*')) {
-    for (const attr of ['aria-label', 'title', 'placeholder', 'aria-valuetext', 'alt']) {
-      const value = el.getAttribute(attr);
-      if (value !== null) out.push(value);
-    }
-  }
-  return out;
 }
 
 describe('the PDF record', () => {
@@ -341,12 +302,7 @@ describe('the PDF record', () => {
     }
 
     // And the source of every file here, for a state not rendered above.
-    for (const [file, source] of Object.entries(sources)) {
-      const code = foldSource(source);
-      for (const label of STRIPPED) {
-        if (code.includes(label.toLowerCase())) hits.push(`${label} in ${file}`);
-      }
-    }
+    hits.push(...sourceHits(sources, STRIPPED));
 
     expect(hits).toEqual([]);
   });
