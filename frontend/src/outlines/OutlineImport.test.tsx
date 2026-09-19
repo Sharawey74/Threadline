@@ -19,6 +19,37 @@ const acid: Artifact = {
 
 const empty: Outline = { total: 0, sections: [] };
 
+const existing: Outline = {
+  total: 49,
+  sections: [
+    { title: 'Scalability', page: 1, checked: true, lineNo: 5 },
+    { title: 'DNS', page: 13, checked: false, lineNo: 6 },
+  ],
+};
+
+/** The three modes the design offered, and a one-of-many control of any kind. */
+const MODES = /trackable checklist|note anchors only|\bboth\b/i;
+const CHOICES =
+  'input[type="radio" i], [role="radio"], [role="radiogroup"], [role="menuitemradio"], select';
+const SOURCE_CHOICES = ['type="radio', 'role="radio', 'radiogroup', 'menuitemradio', '<select'];
+
+// Every non-test file in this folder, as text.
+const sources = import.meta.glob(['./*.{ts,tsx}', '!./*.test.{ts,tsx}'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+/** Source with comments removed and whitespace folded, so a wrapped name still reads whole. */
+function foldSource(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+    .replace(/\{' '\}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 let mock: MockIPC;
 
 beforeEach(() => {
@@ -61,35 +92,59 @@ describe('the outline import screen', () => {
     expect(screen.getByRole('spinbutton', { name: 'Total pages' })).toBeTruthy();
   });
 
-  // The property, whatever the control is built from: nothing on the screen
-  // names one of the three modes, and nothing offers a one-of-many choice.
-  // Checking roles one at a time missed a switch; this checks every element.
+  // The property, whatever the control is built from and whichever state it
+  // appears in: nothing names one of the three modes, and nothing offers a
+  // one-of-many choice. Checked on every state the screen has, and in the
+  // source, so a selector shown only in some state still fails.
   it('offers no mode selector', async () => {
     const user = userEvent.setup();
-    render(<OutlineImport artifact={acid} initial={empty} onSaved={vi.fn()} onCancel={vi.fn()} />);
-    // With rows too, so controls that appear only after a paste are covered.
+    const found: string[] = [];
+    const check = (state: string) => {
+      for (const el of document.body.querySelectorAll('*')) {
+        const names = [el.textContent ?? ''];
+        for (const attr of ['aria-label', 'title', 'placeholder', 'value', 'alt']) {
+          names.push(el.getAttribute(attr) ?? '');
+        }
+        for (const ref of (el.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
+          if (ref !== '') names.push(document.getElementById(ref)?.textContent ?? '');
+        }
+        for (const name of names.filter((n) => MODES.test(n))) found.push(`${state}: "${name}"`);
+      }
+      for (const el of document.querySelectorAll(CHOICES)) found.push(`${state}: ${el.outerHTML}`);
+    };
+
+    // Empty, before anything is pasted.
+    const { unmount } = render(
+      <OutlineImport artifact={acid} initial={empty} onSaved={vi.fn()} onCancel={vi.fn()} />,
+    );
+    check('empty');
+
+    // After a paste.
     await paste(user, '1. Preface.... 1\n2. Storage....... 9');
     await waitFor(() => {
       expect(rows()).toHaveLength(2);
     });
+    check('pasted');
+    unmount();
 
-    const modes = /trackable checklist|note anchors only|\bboth\b/i;
-    const names: string[] = [];
-    for (const el of document.body.querySelectorAll('*')) {
-      names.push(el.textContent ?? '');
-      for (const attr of ['aria-label', 'title', 'placeholder', 'value', 'alt']) {
-        names.push(el.getAttribute(attr) ?? '');
-      }
-      for (const ref of (el.getAttribute('aria-labelledby') ?? '').split(/\s+/)) {
-        names.push(ref === '' ? '' : (document.getElementById(ref)?.textContent ?? ''));
+    // Editing an outline that already exists.
+    render(
+      <OutlineImport artifact={acid} initial={existing} onSaved={vi.fn()} onCancel={vi.fn()} />,
+    );
+    check('editing');
+
+    // The source of every component and helper here, for a state not
+    // rendered above. Comments are dropped: the docblock names the modes to
+    // say they are gone.
+    for (const [file, source] of Object.entries(sources)) {
+      const code = foldSource(source);
+      if (MODES.test(code)) found.push(`${file}: names a mode`);
+      for (const pattern of SOURCE_CHOICES) {
+        if (code.includes(pattern)) found.push(`${file}: ${pattern}`);
       }
     }
-    expect(names.filter((n) => modes.test(n))).toEqual([]);
 
-    const choices = document.querySelectorAll(
-      'input[type="radio"], [role="radio"], [role="radiogroup"], [role="menuitemradio"], select',
-    );
-    expect([...choices].map((el) => el.outerHTML)).toEqual([]);
+    expect(found).toEqual([]);
   });
 
   it('edits and reordering reach the saved outline', async () => {
