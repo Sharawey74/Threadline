@@ -9,8 +9,8 @@ import { MockIPC } from '../ipc/mock';
 import { PdfPane } from './PdfPane';
 import { PdfRecord } from './PdfRecord';
 
-// Every non-test component in this folder, as text.
-const sources = import.meta.glob(['./*.tsx', '!./*.test.tsx'], {
+// Every non-test file in this folder, components and helpers, as text.
+const sources = import.meta.glob(['./*.{ts,tsx}', '!./*.test.{ts,tsx}'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -122,6 +122,16 @@ async function settled(...spies: { mock: { results: { value: unknown }[] } }[]) 
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
   }
+}
+
+/** Source with comments removed and whitespace folded, so a wrapped label still reads whole. */
+function foldSource(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+    .replace(/\{' '\}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
 }
 
 /** Every piece of text a person could read or hear, per element. */
@@ -259,21 +269,80 @@ describe('the PDF record', () => {
       unmount();
     }
 
-    // The pane that ships, for a PDF with an outline and one without.
-    setIPC(new MockIPC());
+    // The pane that ships, for a PDF with an outline and one without, and in
+    // every state a user action leads to.
+    const user = userEvent.setup();
+    const pane = async (pdf: Artifact, setup: (mock: MockIPC) => void = () => undefined) => {
+      const mock = new MockIPC();
+      setup(mock);
+      setIPC(mock);
+      const view = render(<PdfPane artifact={pdf} />);
+      return { mock, view };
+    };
+
     for (const pdf of [artifact, acid]) {
-      const { unmount } = render(<PdfPane artifact={pdf} />);
+      const { view } = await pane(pdf);
       await screen.findByRole('heading', { level: 1, name: pdf.title });
       check(`PdfPane ${pdf.title}`);
-      unmount();
+      view.unmount();
     }
 
-    // And the source, for a label shown only in a state not rendered above.
+    // After a successful open.
+    {
+      const { mock, view } = await pane(artifact);
+      const open = vi.spyOn(mock, 'openExternal');
+      await user.click(await screen.findByRole('button', { name: /^Open in Edge/ }));
+      await settled(open);
+      check('after opening in Edge');
+      view.unmount();
+    }
+
+    // After an open that failed.
+    {
+      const { mock, view } = await pane(artifact, (m) => {
+        vi.spyOn(m, 'openExternal').mockRejectedValue(new Error('microsoft Edge was not found'));
+      });
+      await user.click(await screen.findByRole('button', { name: /^Open in Edge/ }));
+      await screen.findByRole('alert');
+      await settled(vi.mocked(mock.openExternal));
+      check('after a failed open');
+      view.unmount();
+    }
+
+    // After a tick that failed.
+    {
+      const { mock, view } = await pane(artifact, (m) => {
+        vi.spyOn(m, 'tickSection').mockRejectedValue(new Error('plan file changed on disk'));
+      });
+      await user.click(await screen.findByRole('checkbox', { name: 'DNS' }));
+      await screen.findByRole('alert');
+      await settled(vi.mocked(mock.tickSection));
+      check('after a failed tick');
+      view.unmount();
+    }
+
+    // The import screen, reached from Add outline.
+    {
+      const { view } = await pane(acid);
+      await user.click(await screen.findByRole('button', { name: 'Add outline' }));
+      await screen.findByLabelText('Table of contents');
+      check('import screen');
+      view.unmount();
+    }
+
+    // The outline could not be read.
+    {
+      const { view } = await pane(artifact, (m) => {
+        vi.spyOn(m, 'getOutline').mockRejectedValue(new Error('permission denied'));
+      });
+      await screen.findByRole('alert');
+      check('load error');
+      view.unmount();
+    }
+
+    // And the source of every file here, for a state not rendered above.
     for (const [file, source] of Object.entries(sources)) {
-      const code = source
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/\/\/.*$/gm, '')
-        .toLowerCase();
+      const code = foldSource(source);
       for (const label of STRIPPED) {
         if (code.includes(label.toLowerCase())) hits.push(`${label} in ${file}`);
       }
